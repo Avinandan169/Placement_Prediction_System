@@ -65,6 +65,17 @@
         let currentQuestionIndex = 0;
         let questionStartTime = null;
 
+        // --- Helper to safely escape HTML to prevent rendering bugs and XSS ---
+        function escapeHTML(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         // --- NEW: Helper to build full redirect paths ---
         function getRedirectPath(targetFile) {
             // This logic is for when you are on a server (e.g. http://127.0.0.1:5501)
@@ -130,8 +141,18 @@
 
             } catch (error) {
                 console.error('Quiz generation failed:', error);
-                // This is where your error is being displayed
-                quizLoading.innerHTML = `<p>Error generating quiz: ${error.message}. Please try again later.</p>`;
+                const cleanMsg = (error.message || 'Failed to generate quiz').replace(/\.+$/, '');
+                quizLoading.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <p style="color: #c53030; font-size: 1.1rem; margin-bottom: 1rem;">
+                            <i class="fas fa-exclamation-triangle" style="margin-right: 0.5rem;"></i>
+                            Error generating quiz: ${escapeHTML(cleanMsg)}. Please try again.
+                        </p>
+                        <button class="btn" onclick="location.reload()" style="margin-top: 0.5rem; cursor: pointer;">
+                            <i class="fas fa-redo"></i> Retry Quiz Generation
+                        </button>
+                    </div>
+                `;
             }
         });
 
@@ -163,7 +184,7 @@
                 </div>
 
                 <div class="question-box">
-                    <p>${q.question}</p>
+                    <p>${escapeHTML(q.question)}</p>
                 </div>
                 
                 <div class="options-container" id="options-container">
@@ -175,9 +196,9 @@
                 const isChecked = userAnswers[index] === key;
                 
                 quizHTML += `
-                    <label class="quiz-option ${isChecked ? 'selected' : ''}" data-key="${key}">
-                        <input type="radio" name="question-${index}" value="${key}" ${isChecked ? 'checked' : ''} style="display:none;">
-                        <strong>${key}:</strong> ${value}
+                    <label class="quiz-option ${isChecked ? 'selected' : ''}" data-key="${escapeHTML(key)}">
+                        <input type="radio" name="question-${index}" value="${escapeHTML(key)}" ${isChecked ? 'checked' : ''} style="display:none;">
+                        <strong>${escapeHTML(key)}:</strong> ${escapeHTML(value)}
                     </label>
                 `;
             });
@@ -302,17 +323,17 @@
             
             results.individual_results.forEach(item => {
                 const q = quizData.questions[item.id - 1];
-                const correctOption = q.options.find(opt => Object.keys(opt)[0] === item.correct_answer);
-                const correctText = correctOption[item.correct_answer];
+                const correctOption = q && q.options ? q.options.find(opt => Object.keys(opt)[0] === item.correct_answer) : null;
+                const correctText = correctOption ? correctOption[item.correct_answer] : item.correct_answer;
 
                 resultsHTML += `
                     <div class="result-item">
-                        <p>${item.id}. ${item.question}</p>
+                        <p>${item.id}. ${escapeHTML(item.question)}</p>
                         <span class="user-answer ${item.is_correct ? 'correct' : 'incorrect'}">
-                            Your answer: ${item.user_answer || 'No Answer'}
+                            Your answer: ${escapeHTML(item.user_answer || 'No Answer')}
                             ${item.is_correct ? '✔' : '✖'}
                         </span>
-                        ${!item.is_correct ? `<br><span class="correct-answer">Correct: ${item.correct_answer} - ${correctText}</span>` : ''}
+                        ${!item.is_correct ? `<br><span class="correct-answer">Correct: ${escapeHTML(item.correct_answer)} - ${escapeHTML(correctText)}</span>` : ''}
                     </div>
                 `;
             });

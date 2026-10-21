@@ -557,11 +557,8 @@ try:
 except ValueError:
     raise RuntimeError("ACCESS_TOKEN_EXPIRE_MINUTES must be a valid integer.")
 
-LLM_API_URL = "https://router.huggingface.co/v1/chat/completions"
-LLM_HEADERS = {
-    "Authorization": f"Bearer {os.environ.get('HF_TOKEN')}",
-    "Content-Type": "application/json"
-}
+# Note: Legacy Hugging Face inference configuration has been removed.
+# Quiz generation and career chat are now powered by Google Gemini API.
 
 # --- Helper Functions (Original) ---
 def create_access_token(data: dict, expires_delta: timedelta | None = None):
@@ -620,35 +617,251 @@ def get_current_user(
     except Exception:
         raise credentials_exception
 
-# --- LLM Helper Function (For Quiz) ---
+# --- LLM Helper Function (For Quiz using Google Gemini API) ---
 def query_llm_for_quiz(skills_dict: dict):
-    # ... (This function is unchanged)
+    """Generates a technical quiz using Google Gemini API based on student's skills."""
     skills_list = []
     if isinstance(skills_dict, dict):
         for category, sk_list in skills_dict.items():
-            skills_list.extend(sk_list)
-    else:
+            if isinstance(sk_list, list):
+                skills_list.extend(sk_list)
+            elif isinstance(sk_list, str):
+                skills_list.append(sk_list)
+    elif isinstance(skills_dict, list):
         skills_list = list(skills_dict) 
+
+    # Filter out empty or whitespace-only skills
+    skills_list = [s.strip() for s in skills_list if isinstance(s, str) and s.strip()]
     if not skills_list:
         raise HTTPException(status_code=400, detail="No skills to generate quiz.")
-    skills_output = "{" + ", ".join([f'"{skill}"' for skill in skills_list]) + "}"
-    prompt = f"""You are an expert curriculum developer... (rest of prompt is unchanged) ...
-5. These are the following skills for which you need to generate questions: {skills_output}""" 
-    payload = {
-        "messages": [{"role": "user", "content": [{"type": "text", "text": prompt}]}],
-        "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct:groq"
-    }
-    if not os.environ.get('HF_TOKEN'):
-         raise HTTPException(status_code=500, detail="HF_TOKEN environment variable is not set. Cannot call LLM API.")
+
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="GEMINI_API_KEY environment variable is not set. Cannot call Gemini API."
+        )
+
+    skills_output = ", ".join(f'"{skill}"' for skill in skills_list)
+    system_instruction = (
+        "You are an expert curriculum developer and technical quiz generator. "
+        "Your task is to generate a set of 10 multiple-choice questions (MCQs) "
+        "strictly based on the user's provided technical skills. "
+        "Always respond with a single valid JSON object matching the requested schema. "
+        "Do not include Markdown code fences, conversational remarks, or text outside the JSON object."
+    )
+
+    prompt = f"""Generate a technical quiz of 10 multiple-choice questions based ONLY on these skills: [{skills_output}].
+
+Requirements:
+1. Generate exactly 10 unique MCQs.
+2. Difficulty distribution: 3 easy questions, 4 medium questions, and 3 hard questions.
+3. Every question must have exactly four options labeled A, B, C, and D, with only one correct option.
+4. Output must strictly conform to this JSON schema:
+{{
+  "questions": [
+    {{
+      "question": "Question text here",
+      "options": [
+        {{"A": "First option text"}},
+        {{"B": "Second option text"}},
+        {{"C": "Third option text"}},
+        {{"D": "Fourth option text"}}
+      ],
+      "correct": "A",
+      "skill": "Relevant skill name",
+      "difficulty": "easy",
+      "Explanation": "Detailed explanation of why the correct option is right."
+    }}
+  ]
+}}
+"""
+
     try:
-        response = requests.post(LLM_API_URL, headers=LLM_HEADERS, json=payload, timeout=60)
-        response.raise_for_status() 
-        llm_response_content = response.json()["choices"][0]["message"]["content"]
-        json_string = llm_response_content.strip().replace('```json\n', '').replace('\n```', '')
-        return json.loads(json_string)
+        client = genai.Client(api_key=gemini_api_key)
+        max_retries = 2
+        last_api_error = None
+        data = None
+
+        for attempt in range(max_retries + 1):
+            try:
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        response_mime_type="application/json",
+                        temperature=0.7,
+                    )
+                )
+                if not response.text:
+                    raise HTTPException(
+                        status_code=status.HTTP_502_BAD_GATEWAY,
+                        detail="Empty response received from AI model."
+                    )
+
+                raw_text = response.text.strip()
+                if raw_text.startswith("```json"):
+                    raw_text = raw_text[7:]
+                elif raw_text.startswith("```"):
+                    raw_text = raw_text[3:]
+                if raw_text.endswith("```"):
+                    raw_text = raw_text[:-3]
+                raw_text = raw_text.strip()
+
+                data = json.loads(raw_text)
+                break
+            except APIError as e:
+                last_api_error = e
+                error_code = getattr(e, 'code', None)
+                # Automatically retry transient capacity / rate limit issues
+                if attempt < max_retries and (error_code in {429, 500, 503} or "RESOURCE_EXHAUSTED" in str(e) or "UNAVAILABLE" in str(e)):
+                    time.sleep(1.0 * (attempt + 1))
+                    continue
+                
+                if error_code == 429 or "RESOURCE_EXHAUSTED" in str(e):
+                    raise HTTPException(
+                        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                        detail="AI service rate limit or quota exceeded. Please wait a moment and try again."
+                    )
+                print(f"Gemini API Error in quiz generation: {type(e).__name__} (code: {error_code})")
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail="An error occurred while communicating with the AI service for quiz generation."
+                )
+
+        if not isinstance(data, dict) or "questions" not in data or not isinstance(data["questions"], list):
+            raise ValueError("Quiz response missing valid 'questions' array.")
+
+        if len(data["questions"]) != 10:
+            raise ValueError(f"Quiz must contain exactly 10 questions, received {len(data['questions'])}.")
+
+        normalized_questions = []
+        for idx, q in enumerate(data["questions"]):
+            if not isinstance(q, dict):
+                raise ValueError(f"Question at index {idx} must be a dictionary.")
+
+            # 1. Validate question text
+            question_text = q.get("question")
+            if not isinstance(question_text, str) or not question_text.strip():
+                raise ValueError(f"Question at index {idx} has missing or blank 'question' text.")
+
+            # 2. Validate skill
+            skill_text = q.get("skill")
+            if not isinstance(skill_text, str) or not skill_text.strip():
+                raise ValueError(f"Question at index {idx} has missing or blank 'skill'.")
+
+            # 3. Validate Explanation
+            explanation_text = q.get("Explanation")
+            if not explanation_text:
+                explanation_text = q.get("explanation")
+            if not isinstance(explanation_text, str) or not explanation_text.strip():
+                raise ValueError(f"Question at index {idx} has missing or blank 'Explanation'.")
+
+            # 4. Validate and normalize difficulty (easy, medium, hard)
+            raw_diff = q.get("difficulty")
+            if not isinstance(raw_diff, str) or raw_diff.strip().lower() not in {"easy", "medium", "hard"}:
+                raise ValueError(f"Question at index {idx} has invalid difficulty: '{raw_diff}'. Must be easy, medium, or hard.")
+            normalized_difficulty = raw_diff.strip().lower()
+
+            # 5. Validate options (must have exactly 4 non-empty options with keys A, B, C, D)
+            raw_options = q.get("options")
+            option_dict = {}
+
+            if isinstance(raw_options, list):
+                if len(raw_options) != 4:
+                    raise ValueError(f"Question at index {idx} must have exactly 4 options, found {len(raw_options)}.")
+
+                if all(isinstance(opt, dict) for opt in raw_options):
+                    for opt in raw_options:
+                        if len(opt) != 1:
+                            raise ValueError(f"Question at index {idx} has malformed option entry: {opt}.")
+                        k, v = next(iter(opt.items()))
+                        k_upper = str(k).strip().upper()
+                        if k_upper in option_dict:
+                            raise ValueError(f"Question at index {idx} has duplicate option label '{k_upper}'.")
+                        if not isinstance(v, str) or not v.strip():
+                            raise ValueError(f"Question at index {idx} has blank text for option '{k_upper}'.")
+                        option_dict[k_upper] = v.strip()
+                elif all(isinstance(opt, str) for opt in raw_options):
+                    keys = ["A", "B", "C", "D"]
+                    for i, opt_text in enumerate(raw_options):
+                        if not opt_text.strip():
+                            raise ValueError(f"Question at index {idx} has blank text for option '{keys[i]}'.")
+                        option_dict[keys[i]] = opt_text.strip()
+                else:
+                    raise ValueError(f"Invalid options format in question {idx}.")
+
+            elif isinstance(raw_options, dict):
+                if len(raw_options) != 4:
+                    raise ValueError(f"Question at index {idx} must have exactly 4 options, found {len(raw_options)}.")
+                for k, v in raw_options.items():
+                    k_upper = str(k).strip().upper()
+                    if not isinstance(v, str) or not v.strip():
+                        raise ValueError(f"Question at index {idx} has blank text for option '{k_upper}'.")
+                    option_dict[k_upper] = v.strip()
+            else:
+                raise ValueError(f"Options for question at index {idx} must be a list or dict.")
+
+            if set(option_dict.keys()) != {"A", "B", "C", "D"}:
+                raise ValueError(
+                    f"Question at index {idx} options must have unique labels A, B, C, and D. Found: {sorted(list(option_dict.keys()))}."
+                )
+
+            normalized_options = [
+                {"A": option_dict["A"]},
+                {"B": option_dict["B"]},
+                {"C": option_dict["C"]},
+                {"D": option_dict["D"]}
+            ]
+
+            # 6. Validate correct answer (must match A, B, C, or D, or the full text of an option)
+            raw_correct = q.get("correct")
+            if not raw_correct or not isinstance(raw_correct, str):
+                raise ValueError(f"Question at index {idx} is missing a valid 'correct' answer key.")
+
+            correct_key = raw_correct.strip().upper()
+            if correct_key in {"A", "B", "C", "D"}:
+                validated_correct = correct_key
+            else:
+                # If model returned option text instead of label, resolve it
+                matched_key = None
+                for k in ["A", "B", "C", "D"]:
+                    if option_dict[k].lower() == raw_correct.strip().lower():
+                        matched_key = k
+                        break
+                if matched_key:
+                    validated_correct = matched_key
+                else:
+                    raise ValueError(
+                        f"Question at index {idx} has invalid correct answer '{raw_correct}' not matching any option."
+                    )
+
+            normalized_questions.append({
+                "question": question_text.strip(),
+                "options": normalized_options,
+                "correct": validated_correct,
+                "skill": skill_text.strip(),
+                "difficulty": normalized_difficulty,
+                "Explanation": explanation_text.strip()
+            })
+
+        return {"questions": normalized_questions}
+
+    except (json.JSONDecodeError, ValueError) as e:
+        print(f"Failed to parse quiz response from AI: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="AI service returned invalid or malformed quiz data. Please try again."
+        )
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Error in LLM query: {e}")
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred during quiz generation: {e}")
+        print(f"Unexpected error in quiz generation: {type(e).__name__}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during quiz generation."
+        )
 
 
 # --- NEW: LLM Helper Function (For Chatbot using Google Gemini API) ---
