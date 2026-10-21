@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - AI Placements Predictor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="logo">
+                <span>AI</span>
+            </div>
+            <h2>Create Account</h2>
+            <p class="sub-text">Join us to unlock your career potential</p>
+
+            <div class="role-toggle">
+                <button id="role-student">Student</button>
+                <button id="role-officer">Placement Officer</button>
+            </div>
+
+            <form class="auth-form" id="register-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="student@university.edu" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <input type="password" id="confirm-password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-gradient">Create Account</button>
+            </form>
+
+            <p class="switch-link">
+                Already have an account? <a href="login.html">Sign in</a>
+            </p>
+        </div>
+    </div>
+
+<script>
+    // --- Registration Page Logic ---
+    let userRole = 'student'; // Default role
+    const studentBtn = document.getElementById('role-student');
+    const officerBtn = document.getElementById('role-officer');
+    const registerForm = document.getElementById('register-form');
+
+    // --- Helper to build full redirect paths ---
+    function getRedirectPath(targetFile) {
+        const currentPath = window.location.pathname;
+        const dirPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+        return dirPath + '/' + targetFile;
+    }
+
+    // 1. Read role from URL (from index.html)
+    const urlParams = new URLSearchParams(window.location.search);
+    const roleFromUrl = urlParams.get('role');
+
+    if (roleFromUrl === 'officer') {
+        userRole = 'officer';
+        officerBtn.classList.add('active');
+    } else {
+        userRole = 'student';
+        studentBtn.classList.add('active');
+    }
+
+    // 2. Handle manual role toggle
+    studentBtn.addEventListener('click', () => {
+        userRole = 'student';
+        studentBtn.classList.add('active');
+        officerBtn.classList.remove('active');
+    });
+    officerBtn.addEventListener('click', () => {
+        userRole = 'officer';
+        officerBtn.classList.add('active');
+        studentBtn.classList.remove('active');
+    });
+
+    // 3. Handle form submission
+    registerForm.addEventListener('submit', async (event) => {
+        event.preventDefault(); // Stop page refresh
+
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+
+        if (password !== confirmPassword) {
+            alert('Passwords do not match!');
+            return;
+        }
+
+        const requestBody = {
+            email: email,
+            password: password,
+            role: userRole
+        };
+
+        try {
+            // 4. Send data to your FastAPI /register endpoint
+            const response = await fetch('http://127.0.0.1:8000/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Account created successfully! Please log in.');
+                // Use the helper to redirect
+                window.location.href = getRedirectPath('login.html');
+
+            } else {
+                alert('Error: ' + data.detail); // Show backend error
+            }
+        } catch (error) {
+            console.error('Registration failed:', error);
+            alert('An error occurred. Check the console and make sure your backend is running with CORS.');
+        }
+    });
+</script>
+</body>
+</html>

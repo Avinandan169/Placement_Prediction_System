@@ -1,0 +1,349 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>AI Support</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f4f6fa; margin: 0; padding: 0; }
+  .container { max-width: 450px; margin: 40px auto; background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 0 12px rgba(0,0,0,0.09);}
+  h2 { text-align: center; margin-bottom: 18px; }
+  .chat-box { min-height: 300px; border: 1px solid #dee2e6; background: #fafbfc; padding: 16px; border-radius: 8px; margin-bottom: 16px; overflow-y: auto; }
+  .chat-message { margin-bottom: 14px; }
+  .user { color: #005ce6; }
+  .bot { color: #181818; white-space: pre-line; }
+  form { display: flex; }
+  input[type="text"] {
+    flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #bbb; font-size: 16px;
+  }
+  button {
+    padding: 10px 16px; margin-left: 10px; border-radius: 6px; border: none; background: #005ce6; color: white; cursor: pointer; font-size: 16px;
+  }
+  button:hover { background: #0040b3; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h2>AI Support</h2>
+    <div class="chat-box" id="chatBox"></div>
+    <form id="chatForm">
+      <input type="text" id="userInput" autocomplete="off" placeholder="Ask me anything..." required />
+      <button type="submit">Send</button>
+    </form>
+  </div>
+
+  <script>
+    // Each question stored with required keywords for matching and answer text.
+    // The bot returns the answer whose keywords all appear in the user input (order doesn't matter).
+    const qaPairs = [
+      {
+        keywords: ['mistakes', 'test', 'todays'],
+        answer: `You made a few mistakes by rushing through the multiple-choice section, which caused careless errors on questions 5 and 8. Additionally, you skipped completing two short-answer questions, possibly due to time pressure.`
+      },
+      {
+        keywords: ['improve', 'how', 'can'],
+        answer: `To improve, make sure to read each question carefully before answering. Manage your time effectively, ticking off questions based on the points they carry. Practice solving similar problems under timed conditions and review your incorrect answers to understand where you went wrong.`
+      },
+      {
+        keywords: ['study', 'today', 'should', 'what'],
+        answer: `Focus on the topics you found challenging in the test today. For example, revise algebraic expressions and geometric formulas, and work through exercises related to these areas to reinforce your understanding.`
+      },
+      {
+        keywords: ['roadmap', 'best', 'follow'],
+        answer: `Follow a step-by-step learning roadmap:\n - Week 1: Build strong basics in algebra and geometry concepts.\n - Week 2: Practice problem-solving with timed quizzes to improve speed and accuracy.\n - Week 3: Analyze past mistakes from tests to identify weak spots.\n - Week 4: Take full-length mock tests, review errors, and revise difficult topics.`
+      },
+      {
+        keywords: ['resources', 'best', 'roadmap'],
+        answer: `Use Khan Academy for foundational lessons, Paul's Online Math Notes for detailed explanations and exercises, and YouTube channels like Math Antics or Crash Course for simplified video tutorials.`
+      },
+      {
+        keywords: ['communication', 'improve', 'skills', 'how'],
+        answer: `Join English speaking clubs or online conversation groups to practice regularly. Read aloud daily and record yourself to identify areas for improvement. Engage in conversations with friends or mentors in English to build confidence and fluency.`
+      }
+    ];
+
+    const chatBox = document.getElementById('chatBox');
+    const chatForm = document.getElementById('chatForm');
+    const userInput = document.getElementById('userInput');
+
+    // Utility to check if all keywords are in text
+    function containsAllKeywords(text, keywords) {
+      text = text.toLowerCase();
+      return keywords.every(k => text.includes(k));
+    }
+
+    function botRespond(message) {
+      for (const {keywords, answer} of qaPairs) {
+        if (containsAllKeywords(message, keywords)) {
+          return answer;
+        }
+      }
+      return "Sorry, I don't have an answer for that. Please try asking something else related to your learning or tests.";
+    }
+
+    function appendMessage(sender, text) {
+      const div = document.createElement('div');
+      div.classList.add('chat-message');
+      div.classList.add(sender === 'user' ? 'user' : 'bot');
+      div.innerHTML = `<strong>${sender === 'user' ? 'You' : 'Bot'}:</strong> ${text}`;
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    chatForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const userText = userInput.value.trim();
+      if (!userText) return;
+
+      appendMessage('user', userText);
+      userInput.value = '';
+
+      setTimeout(() => {
+        const botText = botRespond(userText);
+        appendMessage('bot', botText);
+      }, 600);
+    });
+  </script>
+</body>
+</html> -->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>AI Support - AI Placements Predictor</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Styles for the chat page */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 105px); /* Full height minus navbar and padding */
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            box-shadow: var(--shadow);
+            border-radius: 10px;
+        }
+        .chat-box { 
+            flex-grow: 1;
+            border-bottom: 1px solid var(--border-color);
+            background: #fafbfc; 
+            padding: 16px; 
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            overflow-y: auto; 
+        }
+        .chat-message { 
+            margin-bottom: 14px; 
+            display: flex;
+            max-width: 80%;
+        }
+        .chat-message .message-content {
+            padding: 10px 14px;
+            border-radius: 18px;
+            white-space: pre-line;
+            line-height: 1.5;
+        }
+        .user { 
+            margin-left: auto; /* Aligns user messages to the right */
+        }
+        .user .message-content {
+            background-color: var(--primary-color);
+            color: var(--white);
+            border-bottom-right-radius: 4px;
+        }
+        .bot {
+            margin-right: auto; /* Aligns bot messages to the left */
+        }
+        .bot .message-content {
+            background-color: var(--light-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            border-bottom-left-radius: 4px;
+        }
+        .chat-message strong {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.8rem;
+            color: #888;
+        }
+        .user strong {
+            display: none; /* Hide "You" label */
+        }
+        
+        #chatForm { 
+            display: flex; 
+            padding: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+        #userInput {
+            flex: 1; 
+            padding: 10px; 
+            border-radius: 6px; 
+            border: 1px solid #bbb; 
+            font-size: 16px;
+        }
+        #chatForm button {
+            padding: 10px 16px; 
+            margin-left: 10px; 
+            border-radius: 6px; 
+            border: none; 
+            background: var(--primary-color); 
+            color: white; 
+            cursor: pointer; 
+            font-size: 16px;
+        }
+        #chatForm button:hover { 
+            background: var(--primary-hover); 
+        }
+        #chatForm button:disabled {
+            background: #ccc;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <span>AI</span> Placements Predictor
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+        </ul>
+        <div>
+            <span id="welcome-email" style="margin-right: 1rem;">Welcome!</span>
+            <a href="#" id="logout-btn" class="btn">Logout</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <ul class="nav-links">
+                <li><a href="dashboard.html"><i class="fas fa-user-circle"></i>Profile</a></li>
+                <li><a href="profile.html"><i class="fas fa-file-arrow-up"></i>Resume Upload</a></li>
+                <li><a href="soft-skills.html"><i class="fas fa-comment"></i>Soft Skills</a></li>
+                <li><a href="results.html"><i class="fas fa-poll"></i>Results & Roadmap</a></li>
+                <li><a href="test.html"><i class="fas fa-vial"></i>Technical Test</a></li>
+                <li><a href="conversation.html" class="active"><i class="fas fa-brain"></i>AI Support</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="chat-container">
+                <div class="chat-box" id="chatBox">
+                    <div class="chat-message bot">
+                        <div class="message-content">
+                            <strong>Bot:</strong> Hello! I'm your AI Placement Assistant. You can ask me questions about your profile or general career advice.
+                        </div>
+                    </div>
+                </div>
+                <form id="chatForm">
+                    <input type="text" id="userInput" autocomplete="off" placeholder="Ask me anything..." required />
+                    <button type="submit" id="send-btn">Send</button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- NEW: Live Chatbot Logic ---
+        const chatBox = document.getElementById('chatBox');
+        const chatForm = document.getElementById('chatForm');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('send-btn');
+        const token = localStorage.getItem('accessToken');
+
+        // This will store our conversation history
+        let chatHistory = [];
+
+        // --- 1. Check Login & Handle Logout ---
+        if (!token) {
+            alert('You must be logged in to use this feature.');
+            window.location.href = 'login.html';
+        }
+        
+        document.getElementById('logout-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.clear(); // Clear everything on logout
+            alert('You have been logged out.');
+            window.location.href = 'login.html';
+        });
+
+        // --- 2. Add message to the chat UI ---
+        function appendMessage(sender, text) {
+            const div = document.createElement('div');
+            div.classList.add('chat-message');
+            div.classList.add(sender); // 'user' or 'bot'
+
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('message-content');
+            
+            if(sender === 'bot') {
+                const strong = document.createElement('strong');
+                strong.textContent = 'Bot:';
+                contentDiv.appendChild(strong);
+            }
+            
+            contentDiv.appendChild(document.createTextNode(text)); // Use createTextNode to prevent HTML injection
+            div.appendChild(contentDiv);
+            
+            chatBox.appendChild(div);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        // --- 3. Handle Form Submission ---
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userText = userInput.value.trim();
+            if (!userText) return;
+
+            // 1. Add user message to UI and history
+            appendMessage('user', userText);
+            chatHistory.push({ role: "user", content: userText });
+            userInput.value = '';
+            sendBtn.disabled = true;
+
+            // 2. Add a typing indicator
+            appendMessage('bot', 'Typing...');
+            
+            try {
+                // 3. Call the backend API
+                const response = await fetch('http://127.0.0.1:8000/chat/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        message: userText,
+                        history: chatHistory.slice(0, -1) // Send history *before* new message
+                    })
+                });
+
+                // Remove the "Typing..." message
+                chatBox.removeChild(chatBox.lastChild);
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'An error occurred in the chat API.');
+                }
+
+                const data = await response.json();
+                const botText = data.response;
+
+                // 4. Add bot response to UI and history
+                appendMessage('bot', botText);
+                chatHistory.push({ role: "assistant", content: botText });
+
+            } catch (error) {
+                console.error("Chat error:", error);
+                appendMessage('bot', `Sorry, an error occurred: ${error.message}`);
+            } finally {
+                sendBtn.disabled = false;
+                userInput.focus();
+            }
+        });
+    </script>
+</body>
+</html>

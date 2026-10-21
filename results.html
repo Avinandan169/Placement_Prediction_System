@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Results - AI Placements Predictor</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <span>AI</span> Placements Predictor
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+        </ul>
+        <div>
+            <span id="welcome-email" style="margin-right: 1rem;">Welcome!</span>
+            <a href="#" id="logout-btn" class="btn">Logout</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <ul class="nav-links">
+                <li><a href="dashboard.html">Profile</a></li>
+                <li><a href="profile.html">Resume Upload</a></li>
+                <li><a href="soft-skills.html">Soft Skills</a></li>
+                <li><a href="results.html" class="active">Results & Roadmap</a></li>
+                <li><a href="test.html">Technical Test</a></li>
+                <li><a href="conversation.html"><i class="fas fa-brain"></i>AI Support</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="results-card">
+                <h2>Your Job Role Predictions</h2>
+                <p>Based on your resume, here are the top roles you're suited for.</p>
+                
+                <div id="results-container">
+                    </div>
+
+                <div class="test-button-container">
+                    <h3>Ready to test your skills?</h3>
+                    <p>Take a technical test based on the skills found in your resume.</p>
+                    <a href="test.html" class="btn btn-gradient">Take Technical Test</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- Helper Function ---
+        function getRedirectPath(targetFile) {
+            const currentPath = window.location.pathname;
+            const dirPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+            return dirPath + '/' + targetFile;
+        }
+
+        // --- 1. Check Login & Handle Logout ---
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+            alert('You must be logged in to view this page.');
+            window.location.href = getRedirectPath('login.html');
+        }
+        
+        document.getElementById('logout-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('accessToken');
+            alert('You have been logged out.');
+            window.location.href = getRedirectPath('login.html');
+        });
+
+        // --- 2. Load and Display Results ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const resultsContainer = document.getElementById('results-container');
+            const predictionsString = localStorage.getItem('jobRecommendations');
+            
+            if (!predictionsString) {
+                resultsContainer.innerHTML = '<p>No predictions found. Please <a href="profile.html">upload your resume</a> first.</p>';
+                return;
+            }
+
+            try {
+                const predictions = JSON.parse(predictionsString);
+                
+                if (predictions.length === 0) {
+                     resultsContainer.innerHTML = '<p>Could not determine job roles from your resume.</p>';
+                     return;
+                }
+
+                // Sort by match_score, highest first
+                predictions.sort((a, b) => b.match_score - a.match_score);
+
+                predictions.forEach(role => {
+                    const roleElement = document.createElement('div');
+                    roleElement.classList.add('role-item');
+                    roleElement.innerHTML = `
+                        <span class="role-name">${role.job_profile}</span>
+                        <span class="role-percentile">${(role.match_score * 100).toFixed(0)}%</span>
+                    `;
+                    resultsContainer.appendChild(roleElement);
+                });
+            } catch (error) {
+                console.error('Error parsing predictions:', error);
+                resultsContainer.innerHTML = '<p>An error occurred while loading your results.</p>';
+            }
+        });
+    </script>
+</body>
+</html>

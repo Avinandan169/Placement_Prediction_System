@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - AI Placements Predictor</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">
+            <span>AI</span> Placements Predictor
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+        </ul>
+        <div>
+            <span id="welcome-user" style="margin-right: 1rem;">Welcome!</span>
+            <a href="#" id="logout-btn" class="btn">Logout</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <ul class="nav-links">
+                <li><a href="dashboard.html" class="active">Profile</a></li>
+                <li><a href="profile.html">Resume Upload</a></li>
+                <li><a href="soft-skills.html">Soft Skills</a></li>
+                <li><a href="results.html">Results & Roadmap</a></li>
+                <li><a href="test.html">Technical Test</a></li>
+                <li><a href="conversation.html"><i class="fas fa-brain"></i>AI Support</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="welcome-banner">
+                <h2 id="welcome-banner-name">Welcome back! 👋</h2>
+                <p>Let's continue building your career profile and unlock your potential.</p>
+            </div>
+
+            <div class="profile-summary-card">
+                <h3><i class="fas fa-user-circle"></i> Your Profile</h3>
+                <div class="user-info">
+                    <strong>Email:</strong> <span id="user-email-display">Loading...</span>
+                </div>
+                
+                <hr>
+
+                <h3><i class="fas fa-bullseye"></i> Top Job Role Predictions</h3>
+                <div id="predictions-container">
+                    </div>
+            </div>
+
+            <div class="profile-completion-card">
+                <h3>Profile Completion</h3>
+                <p>Complete all steps to get accurate predictions</p>
+                <div class="step">
+                    <div class="step-info">
+                        <span class="step-icon"><i class="fas fa-check"></i></span>
+                        <span class="step-name">Account Created</span>
+                    </div>
+                    <span class="step-status completed">Completed</span>
+                </div>
+                <div class="step">
+                    <div class="step-info">
+                        <span class="step-icon"><i class="fas fa-file-arrow-up"></i></span>
+                        <span class="step-name">Resume Upload</span>
+                    </div>
+                    <span id="resume-status" class="step-status pending">Pending</span>
+                </div>
+                <div class="step">
+                    <div class="step-info">
+                        <span class="step-icon"><i class="fas fa-comment"></i></span>
+                        <span class="step-name">Communication Test</span>
+                    </div>
+                    <span class="step-status pending">Pending</span>
+                </div>
+            </div>
+
+            <div class="card-container">
+                <div class="info-card">
+                    <div class="icon"><i class="fas fa-file-arrow-up"></i></div>
+                    <h4>Upload Resume</h4>
+                    <p>Start by uploading your resume or entering details manually.</p>
+                    <a href="profile.html">Get Started &rarr;</a>
+                </div>
+                <div class="info-card">
+                    <div class="icon"><i class="fas fa-comment"></i></div>
+                    <h4>Communication Test</h4>
+                    <p>Test your soft skills and communication abilities.</p>
+                    <a href="soft-skills.html">Get Started &rarr;</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- Helper Function ---
+        function getRedirectPath(targetFile) {
+            const currentPath = window.location.pathname;
+            const dirPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+            return dirPath + '/' + targetFile;
+        }
+        
+        // --- NEW: Helper to parse JWT token ---
+        function parseJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                return null; // Invalid token
+            }
+        }
+
+        // --- 1. Check Login & Handle Logout ---
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+            alert('You must be logged in to view this page.');
+            window.location.href = getRedirectPath('login.html');
+        }
+        
+        document.getElementById('logout-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('accessToken');
+            alert('You have been logged out.');
+            window.location.href = getRedirectPath('login.html');
+        });
+
+        // --- 2. Load Profile Data ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const predictionsContainer = document.getElementById('predictions-container');
+            const predictionsString = localStorage.getItem('jobRecommendations');
+            const tokenData = parseJwt(token);
+
+            // Set Welcome Message and Email
+            if (tokenData && tokenData.sub) {
+                document.getElementById('welcome-user').textContent = `Welcome, ${tokenData.sub.split('@')[0]}!`;
+                document.getElementById('welcome-banner-name').textContent = `Welcome back, ${tokenData.sub.split('@')[0]}! 👋`;
+                document.getElementById('user-email-display').textContent = tokenData.sub;
+            }
+            
+            // Load Job Predictions
+            if (!predictionsString) {
+                predictionsContainer.innerHTML = '<p style="color: #666; font-size: 0.9rem;">No predictions found. <a href="profile.html">Upload your resume</a> to get started.</p>';
+            } else {
+                try {
+                    const predictions = JSON.parse(predictionsString);
+                    if (predictions.length === 0) {
+                         predictionsContainer.innerHTML = '<p>Could not determine job roles from your resume.</p>';
+                         return;
+                    }
+
+                    // Update resume status
+                    document.getElementById('resume-status').textContent = 'Completed';
+                    document.getElementById('resume-status').classList.remove('pending');
+                    document.getElementById('resume-status').classList.add('completed');
+
+                    predictions.sort((a, b) => b.match_score - a.match_score);
+
+                    predictions.forEach(role => {
+                        const roleElement = document.createElement('div');
+                        roleElement.classList.add('role-item'); // We can reuse this style
+                        roleElement.innerHTML = `
+                            <span class="role-name">${role.job_profile}</span>
+                            <span class="role-percentile">${(role.match_score * 100).toFixed(0)}%</span>
+                        `;
+                        predictionsContainer.appendChild(roleElement);
+                    });
+                } catch (error) {
+                    console.error('Error parsing predictions:', error);
+                    predictionsContainer.innerHTML = '<p>An error occurred while loading your results.</p>';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

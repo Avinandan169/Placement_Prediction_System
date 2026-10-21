@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical Test - AI Placements Predictor</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <span>AI</span> Placements Predictor
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+        </ul>
+        <div>
+            <span id="welcome-email" style="margin-right: 1rem;">Welcome!</span>
+            <a href="#" id="logout-btn" class="btn">Logout</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <ul class="nav-links">
+                <li><a href="dashboard.html"><i class="fas fa-user-circle"></i>Profile</a></li>
+                <li><a href="profile.html"><i class="fas fa-file-arrow-up"></i>Resume Upload</a></li>
+                <li><a href="soft-skills.html"><i class="fas fa-comment"></i>Soft Skills</a></li>
+                <li><a href="results.html"><i class="fas fa-poll"></i>Results & Roadmap</a></li>
+                <li><a href="test.html" class="active"><i class="fas fa-vial"></i>Technical Test</a></li>
+                <li><a href="conversation.html"><i class="fas fa-brain"></i>AI Support</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div id="quiz-loading" class="loading-quiz">
+                <p>Generating your personalized technical test based on your resume skills...</p>
+                <p>This may take a moment.</p>
+            </div>
+
+            <div id="quiz-container" class="quiz-card" style="display: none;">
+                </div>
+
+            <div id="results-container" class="quiz-card" style="display: none;">
+                </div>
+        </main>
+    </div>
+
+    <script>
+        // --- Full Test Page Logic ---
+        
+        // --- 0. Get Elements and State ---
+        const token = localStorage.getItem('accessToken');
+        const skillsDataString = localStorage.getItem('skillsData'); // Get skills from resume
+        
+        const quizLoading = document.getElementById('quiz-loading');
+        const quizContainer = document.getElementById('quiz-container');
+        const resultsContainer = document.getElementById('results-container');
+        
+        let quizData = null;
+        let userAnswers = {};
+        let questionTimeSpent = {};
+        let currentQuestionIndex = 0;
+        let questionStartTime = null;
+
+        // --- NEW: Helper to build full redirect paths ---
+        function getRedirectPath(targetFile) {
+            // This logic is for when you are on a server (e.g. http://127.0.0.1:5501)
+            // It makes sure you redirect to /login.html and not /dashboard/login.html
+            const origin = window.location.origin;
+            const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+            // Use simple relative paths if on a server
+            return targetFile;
+        }
+
+        // --- 1. Check Login & Handle Logout ---
+        if (!token) {
+            alert('You must be logged in to view this page.');
+            window.location.href = 'login.html';
+        }
+        
+        document.getElementById('logout-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('jobRecommendations');
+            localStorage.removeItem('skillsData');
+            alert('You have been logged out.');
+            window.location.href = 'login.html';
+        });
+
+        // --- 2. Main Function: Generate Quiz on Page Load ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!skillsDataString) {
+                quizLoading.innerHTML = '<p>No skills data found. Please <a href="profile.html">upload your resume</a> first to generate a test.</p>';
+                return;
+            }
+
+            let skillsData;
+            try {
+                skillsData = JSON.parse(skillsDataString);
+            } catch (e) {
+                quizLoading.innerHTML = '<p>Error reading your skills data. Please try uploading your resume again.</p>';
+                return;
+            }
+
+            try {
+                // Call our backend's new /generate-quiz endpoint
+                const response = await fetch('http://127.0.0.1:8000/generate-quiz', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify(skillsData) // Send the skills object
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Failed to generate quiz');
+                }
+
+                quizData = await response.json();
+                
+                // Quiz is ready, start it
+                quizLoading.style.display = 'none';
+                quizContainer.style.display = 'block';
+                startQuiz();
+
+            } catch (error) {
+                console.error('Quiz generation failed:', error);
+                // This is where your error is being displayed
+                quizLoading.innerHTML = `<p>Error generating quiz: ${error.message}. Please try again later.</p>`;
+            }
+        });
+
+        // --- 3. Quiz Logic ---
+        function startQuiz() {
+            userAnswers = {};
+            questionTimeSpent = {};
+            currentQuestionIndex = 0;
+            displayQuestion(0);
+            questionStartTime = Date.now();
+        }
+
+        function displayQuestion(index) {
+            if (!quizData || !quizData.questions) {
+                quizContainer.innerHTML = "<p>Error: Quiz data is invalid.</p>";
+                return;
+            }
+            const q = quizData.questions[index];
+            const total = quizData.questions.length;
+            const percent = ((index + 1) / total) * 100;
+
+            let quizHTML = `
+                <div class="quiz-header">
+                    <h3>Question ${index + 1} of ${total}</h3>
+                    <span>${percent.toFixed(0)}% Complete</span>
+                    <div class="progress-bar">
+                        <div class="progress-bar-inner" style="width: ${percent}%;"></div>
+                    </div>
+                </div>
+
+                <div class="question-box">
+                    <p>${q.question}</p>
+                </div>
+                
+                <div class="options-container" id="options-container">
+            `;
+            
+            q.options.forEach(optObj => {
+                const key = Object.keys(optObj)[0];
+                const value = optObj[key];
+                const isChecked = userAnswers[index] === key;
+                
+                quizHTML += `
+                    <label class="quiz-option ${isChecked ? 'selected' : ''}" data-key="${key}">
+                        <input type="radio" name="question-${index}" value="${key}" ${isChecked ? 'checked' : ''} style="display:none;">
+                        <strong>${key}:</strong> ${value}
+                    </label>
+                `;
+            });
+            
+            quizHTML += '</div><div class="quiz-nav">';
+            
+            quizHTML += `
+                <button class="btn" id="prev-btn" ${index === 0 ? 'disabled' : ''}>Previous</button>
+                <button class="btn" id="next-btn">${index === total - 1 ? 'Submit' : 'Next'}</button>
+            `;
+            
+            quizHTML += '</div><div class="question-pills">';
+            
+            for (let i = 0; i < total; i++) {
+                let pillClass = 'pill';
+                if (i === index) pillClass += ' active';
+                if (userAnswers[i]) pillClass += ' answered';
+                quizHTML += `<span class="${pillClass}" data-index="${i}">${i + 1}</span>`;
+            }
+            
+            quizHTML += '</div></div>';
+            quizContainer.innerHTML = quizHTML;
+
+            addQuizNavListeners();
+        }
+
+        function addQuizNavListeners() {
+            document.querySelectorAll('.quiz-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    document.querySelectorAll('.quiz-option').forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    opt.querySelector('input').checked = true;
+                    userAnswers[currentQuestionIndex] = opt.getAttribute('data-key');
+                    document.querySelector(`.pill[data-index="${currentQuestionIndex}"]`).classList.add('answered');
+                });
+            });
+
+            document.querySelectorAll('.pill').forEach(pill => {
+                pill.addEventListener('click', () => {
+                    const newIndex = parseInt(pill.getAttribute('data-index'));
+                    navigateTo(newIndex);
+                });
+            });
+
+            document.getElementById('prev-btn').addEventListener('click', () => navigateTo(currentQuestionIndex - 1));
+            document.getElementById('next-btn').addEventListener('click', () => {
+                if (currentQuestionIndex === quizData.questions.length - 1) {
+                    submitQuiz();
+                } else {
+                    navigateTo(currentQuestionIndex + 1);
+                }
+            });
+        }
+        
+        function navigateTo(index) {
+            if (index < 0 || index >= quizData.questions.length) return;
+            
+            const timeElapsed = (Date.now() - questionStartTime) / 1000;
+            questionTimeSpent[currentQuestionIndex] = (questionTimeSpent[currentQuestionIndex] || 0) + timeElapsed;
+            
+            questionStartTime = Date.now();
+            currentQuestionIndex = index;
+            displayQuestion(index);
+        }
+
+        // --- 4. Submit Quiz Logic ---
+        async function submitQuiz() {
+            const timeElapsed = (Date.now() - questionStartTime) / 1000;
+            questionTimeSpent[currentQuestionIndex] = (questionTimeSpent[currentQuestionIndex] || 0) + timeElapsed;
+
+            quizContainer.style.display = 'none';
+            quizLoading.style.display = 'block';
+            quizLoading.innerHTML = '<p>Submitting your answers...</p>';
+            
+            const finalTimeSpent = {};
+            for (let i = 0; i < quizData.questions.length; i++) {
+                finalTimeSpent[String(i)] = parseFloat(questionTimeSpent[i] || 0.0);
+            }
+
+            const submissionData = {
+                answers: userAnswers,
+                time_spent: finalTimeSpent,
+                quiz_data: quizData
+            };
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8000/submit-quiz', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify(submissionData)
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Failed to submit quiz');
+                }
+
+                const results = await response.json();
+                displayResults(results);
+
+            } catch (error) {
+                alert('Error submitting quiz: ' + error.message);
+            } finally {
+                quizLoading.style.display = 'none';
+                resultsContainer.style.display = 'block';
+            }
+        }
+
+        // --- 5. Display Results Logic ---
+        function displayResults(results) {
+            let resultsHTML = `
+                <div class="results-summary">
+                    <h2>${results.percentage.toFixed(0)}%</h2>
+                    <p>You got <strong>${results.score}</strong> questions correct.</p>
+                    <p>Total time: ${results.total_time_seconds.toFixed(1)} seconds</p>
+                </div>
+                <h3>Review Your Answers</h3>
+            `;
+            
+            results.individual_results.forEach(item => {
+                const q = quizData.questions[item.id - 1];
+                const correctOption = q.options.find(opt => Object.keys(opt)[0] === item.correct_answer);
+                const correctText = correctOption[item.correct_answer];
+
+                resultsHTML += `
+                    <div class="result-item">
+                        <p>${item.id}. ${item.question}</p>
+                        <span class="user-answer ${item.is_correct ? 'correct' : 'incorrect'}">
+                            Your answer: ${item.user_answer || 'No Answer'}
+                            ${item.is_correct ? '✔' : '✖'}
+                        </span>
+                        ${!item.is_correct ? `<br><span class="correct-answer">Correct: ${item.correct_answer} - ${correctText}</span>` : ''}
+                    </div>
+                `;
+            });
+            resultsContainer.innerHTML = resultsHTML;
+        }
+
+    </script>
+</body>
+</html>

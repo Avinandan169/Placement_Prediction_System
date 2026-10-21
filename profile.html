@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - AI Placements Predictor</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="logo">
+            <span>AI</span> Placements Predictor
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html">Home</a></li>
+            <li><a href="#">About</a></li>
+            <li><a href="#">Contact</a></li>
+        </ul>
+        <div>
+            <span id="welcome-email" style="margin-right: 1rem;">Welcome!</span>
+            <a href="#" id="logout-btn" class="btn">Logout</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <ul class="nav-links">
+                <li><a href="dashboard.html">Profile</a></li>
+                <li><a href="profile.html" class="active">Resume Upload</a></li>
+                <li><a href="soft-skills.html">Soft Skills</a></li>
+                <li><a href="results.html">Results & Roadmap</a></li>
+                <li><a href="test.html">Technical Test</a></li>
+                <li><a href="conversation.html"><i class="fas fa-brain"></i>AI Support</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <div class="profile-card">
+                <h2>Resume & Profile</h2>
+                <p style="color: var(--text-light); margin-bottom: 1.5rem;">Upload your resume or enter details manually</p>
+
+                <div class="tabs">
+                    <button id="upload-tab-btn" class="active">Upload Resume</button>
+                    <button id="manual-tab-btn">Manual Entry</button>
+                </div>
+
+                <div id="upload-tab-content" class="tab-content active">
+                    <form id="upload-form">
+                        <div class="upload-resume-container">
+                            <div class="icon">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <h3>Upload your resume</h3>
+                            <p>PDF format only, maximum 5MB</p>
+                            <input type="file" id="resume-file-input" accept=".pdf" required>
+                            <button type="submit" class="btn btn-gradient" style="margin-top: 1.5rem;">
+                                Upload & Process
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div id="manual-tab-content" class="tab-content">
+                    <form class="profile-form" id="profile-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="full-name">Full Name *</label>
+                                <input type="text" id="full-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="email-manual">Email</label>
+                                <input type="email" id="email-manual" placeholder="Your email is linked to your account" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label for="cgpa">CGPA *</label>
+                                <input type="number" step="0.01" id="cgpa" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="tenth-percentage">10th Percentage *</label>
+                                <input type="number" step="0.01" id="tenth-percentage" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="twelfth-percentage">12th Percentage *</label>
+                                <input type="number" step="0.01" id="twelfth-percentage" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="current-year">Current Year *</label>
+                                <input type="number" id="current-year" required>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="course">Course *</label>
+                                <input type="text" id="course" placeholder="B.Tech, M.Sc, etc." required>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="skills">Skills (comma separated) *</label>
+                                <input type="text" id="skills" placeholder="Python, React, Machine Learning" required>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="projects">Projects</label>
+                                <textarea id="projects" rows="3"></textarea>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="achievements">Achievements</label>
+                                <textarea id="achievements" rows="3"></textarea>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="linkedin-url">LinkedIn Profile URL</label>
+                                <input type="text" id="linkedin-url">
+                            </div>
+
+                            <button type="submit" class="btn btn-gradient">Save Profile</button>
+                        </div>
+                    </form>
+                </div>
+                
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- Full Profile Page Logic (MODIFIED) ---
+        
+        // --- 0. Get All Elements ---
+        const token = localStorage.getItem('accessToken');
+        
+        const uploadTabBtn = document.getElementById('upload-tab-btn');
+        const manualTabBtn = document.getElementById('manual-tab-btn');
+        const uploadTabContent = document.getElementById('upload-tab-content');
+        const manualTabContent = document.getElementById('manual-tab-content');
+        
+        const uploadForm = document.getElementById('upload-form');
+        const profileForm = document.getElementById('profile-form');
+        const resumeFileInput = document.getElementById('resume-file-input');
+        
+        // --- Helper to build full redirect paths ---
+        function getRedirectPath(targetFile) {
+            const currentPath = window.location.pathname;
+            const dirPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+            return dirPath + '/' + targetFile;
+        }
+
+        // --- HELPER: Function to download skills.json ---
+        function downloadObjectAsJson(exportObj, exportName){
+            try {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportObj, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", exportName + ".json");
+                document.body.appendChild(downloadAnchorNode); 
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+                console.log(exportName + ".json saved to Downloads.");
+            } catch (e) {
+                console.error("Failed to download JSON:", e);
+            }
+        }
+
+        // --- 1. Check Login & Handle Logout ---
+        if (!token) {
+            alert('You must be logged in to view this page.');
+            window.location.href = getRedirectPath('login.html');
+        }
+        
+        document.getElementById('logout-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('accessToken');
+            alert('You have been logged out.');
+            window.location.href = getRedirectPath('login.html');
+        });
+
+        // --- 2. Tab Switching Logic ---
+        function showTab(tabName) {
+            if (tabName === 'upload') {
+                uploadTabBtn.classList.add('active');
+                manualTabBtn.classList.remove('active');
+                uploadTabContent.classList.add('active');
+                manualTabContent.classList.remove('active');
+            } else {
+                manualTabBtn.classList.add('active');
+                uploadTabBtn.classList.remove('active');
+                manualTabContent.classList.add('active');
+                uploadTabContent.classList.remove('active');
+            }
+        }
+        
+        uploadTabBtn.addEventListener('click', () => showTab('upload'));
+        manualTabBtn.addEventListener('click', () => showTab('manual'));
+
+        // --- 3. Handle Resume Upload (MODIFIED) ---
+        uploadForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const file = resumeFileInput.files[0];
+            if (!file) {
+                alert('Please select a PDF file to upload.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            alert('Uploading and analyzing resume... This may take a moment.');
+            
+            const externalApiUrl = 'https://toxophilitic-shad-globate.ngrok-free.dev/analyze_resume/';
+
+            try {
+                // --- STEP 3a: Call your friend's external API ---
+                const response = await fetch(externalApiUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    alert('Resume analysis complete! Saving data to your profile...');
+                    
+                    // --- STEP 3b: Save skills (as requested) ---
+                    if (data.parsed_data && data.parsed_data.skills) {
+                        localStorage.setItem('skillsData', JSON.stringify(data.parsed_data.skills));
+                        downloadObjectAsJson(data.parsed_data.skills, 'skills');
+                    }
+                    
+                    if (data.recommendations) {
+                        localStorage.setItem('jobRecommendations', JSON.stringify(data.recommendations));
+                    }
+
+                    // --- STEP 3d: Call our *own* backend to save the data ---
+                    await saveProfileDataToBackend(data.parsed_data);
+                    
+                } else {
+                    alert('Error from resume analysis API: ' + (data.detail || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('File upload failed:', error);
+                alert('An error occurred during file upload. Is the ngrok server running?');
+            }
+        });
+
+        // --- HELPER FUNCTION (MODIFIED) ---
+        async function saveProfileDataToBackend(parsedData) {
+            if (!parsedData) {
+                alert('No parsed data found in resume response.');
+                return;
+            }
+
+            let allSkills = [];
+            if (parsedData.skills) {
+                Object.values(parsedData.skills).forEach(skillArray => {
+                    allSkills = allSkills.concat(skillArray);
+                });
+            }
+            
+            // **FIX:** Removed 'email' from this object
+            const profileBody = {
+                full_name: parsedData.name || null,
+                course: parsedData.education ? (parsedData.education.field || null) : null,
+                cgpa: parsedData.education ? (parseFloat(parsedData.education.cgpa) || null) : null,
+                skills: allSkills.length > 0 ? allSkills : null,
+                projects: parsedData.projects ? JSON.stringify(parsedData.projects) : null, 
+                achievements: parsedData.achievements_and_awards ? parsedData.achievements_and_awards.join(', ') : null,
+                linkedin_url: parsedData.contact_info ? parsedData.contact_info.linkedin : null
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/profile/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify(profileBody)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Your profile has been saved! Redirecting to results...');
+                    // **NEW:** Redirect to results.html on success
+                    window.location.href = getRedirectPath('results.html');
+                } else {
+                    if (response.status === 401) {
+                        alert('Your session has expired. Please log in again.');
+                        window.location.href = getRedirectPath('login.html');
+                    } else {
+                        alert('Error saving profile to our backend: ' + data.detail);
+                    }
+                }
+            } catch (error) {
+                console.error('Profile update failed:', error);
+                alert('An error occurred while saving your profile to our backend.');
+            }
+        }
+
+
+        // --- 4. Handle Manual Profile Form Submission (MODIFIED) ---
+        // **FIX:** Removed 'email' from this function
+        profileForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const skillsInput = document.getElementById('skills').value;
+            
+            const profileBody = {
+                full_name: document.getElementById('full-name').value,
+                // email: document.getElementById('email-manual').value, // <-- REMOVED
+                course: document.getElementById('course').value,
+                tenth_percentage: parseFloat(document.getElementById('tenth-percentage').value),
+                twelfth_percentage: parseFloat(document.getElementById('twelfth-percentage').value),
+                current_year: parseInt(document.getElementById('current-year').value),
+                cgpa: parseFloat(document.getElementById('cgpa').value),
+                skills: skillsInput.split(',').map(skill => skill.trim()),
+                projects: document.getElementById('projects').value || null,
+                achievements: document.getElementById('achievements').value || null,
+                linkedin_url: document.getElementById('linkedin-url').value || null
+            };
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/profile/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify(profileBody)
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Profile saved successfully!');
+                } else {
+                    if (response.status === 401) {
+                        alert('Your session has expired. Please log in again.');
+                        window.location.href = getRedirectPath('login.html');
+                    } else {
+                        alert('Error: ' + data.detail);
+                    }
+                }
+            } catch (error) {
+                console.error('Profile update failed:', error);
+                alert('An error occurred. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>

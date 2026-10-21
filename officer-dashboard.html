@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Placement Dashboard - AI Placements Predictor</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <span>AI</span> Placements Dashboard
+        </div>
+        <div>
+            <span id="welcome-user" style="margin-right: 1rem;">Welcome!</span>
+            <a href="#" id="logout-btn" class="btn">Logout</a>
+        </div>
+    </nav>
+
+    <div class="main-content" style="padding: 2rem 5rem;"> 
+        
+        <div class="upload-job-card">
+            <h4><i class="fas fa-file-arrow-up"></i> Upload Job Description</h4>
+            <p>Upload a PDF to analyze required skills and match students.</p>
+            <form id="upload-jd-form" class="upload-jd-form">
+                <input type="file" id="jd-file" accept=".pdf" required>
+                <button type="submit" class="btn btn-gradient">Upload PDF</button>
+            </form>
+        </div>
+
+        <div class="job-skills-card" id="job-skills-card">
+            <h3>Required Skills for Job</h3>
+            <div class="skill-tags" id="job-skills-container">
+                </div>
+        </div>
+
+        <div class="student-list-card">
+            <div class="student-list-header">
+                <div>
+                    <h3>Student Rankings</h3>
+                    <p id="student-count">Loading students...</p>
+                </div>
+                <button class="btn"><i class="fas fa-envelope"></i> Email Top 3</button>
+            </div>
+            
+            <div class="search-bar">
+                <i class="fas fa-search"></i>
+                <input type="text" id="search-input" placeholder="Search by name, email, or skills...">
+                <select id="filter-skills">
+                    <option value="">All Skills</option>
+                </select>
+            </div>
+
+            <div id="student-list-container">
+                <div class="student-card-placeholder">Loading student data...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 0. Global variable to hold all student data ---
+        let allStudentsData = [];
+        //    This is the external API from main(1).py
+        const JD_ANALYSIS_API_URL = "https://7932755b38e4.ngrok-free.app/analyze_resume/";
+        
+        // --- Helper Function ---
+        function getRedirectPath(targetFile) {
+            const currentPath = window.location.pathname;
+            const dirPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+            return dirPath + '/' + targetFile;
+        }
+
+        // --- 1. Check Login & Handle Logout ---
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+            alert('You must be logged in to view this page.');
+            window.location.href = getRedirectPath('login.html');
+        }
+        
+        document.getElementById('logout-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('accessToken');
+            alert('You have been logged out.');
+            window.location.href = getRedirectPath('login.html');
+        });
+
+        // --- 2. Load Student Data on Page Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadStudents();
+            
+            // Add event listeners for filters
+            document.getElementById('search-input').addEventListener('input', applyFilters);
+            document.getElementById('filter-skills').addEventListener('change', applyFilters);
+            
+            // NEW: Add event listener for JD Upload
+            document.getElementById('upload-jd-form').addEventListener('submit', handleJDSubmit);
+        });
+
+        async function loadStudents() {
+            const container = document.getElementById('student-list-container');
+            container.innerHTML = '<div class="student-card-placeholder">Loading student data...</div>';
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/officer/get-students', {
+                    method: 'GET',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        alert('Your session has expired or you are not an officer. Logging out.');
+                        window.location.href = getRedirectPath('login.html');
+                    }
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Failed to fetch students');
+                }
+
+                const data = await response.json();
+                
+                allStudentsData = data.students; 
+                populateSkillFilter(data.all_skills); 
+                renderStudents(allStudentsData); // Render the full list initially
+
+            } catch (error) {
+                console.error('Failed to load students:', error);
+                container.innerHTML = `<div class="student-card-placeholder" style="color: red;">Error: ${error.message}</div>`;
+            }
+        }
+
+        // --- 3. Populate Skill Filter ---
+        function populateSkillFilter(skills) {
+            const filterSelect = document.getElementById('filter-skills');
+            if (!skills) return;
+            
+            skills.forEach(skill => {
+                const option = document.createElement('option');
+                option.value = skill;
+                option.textContent = skill;
+                filterSelect.appendChild(option);
+            });
+        }
+
+        // --- 4. Filter Logic ---
+        function applyFilters() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const filterSkill = document.getElementById('filter-skills').value;
+            
+            let filteredStudents = allStudentsData;
+
+            if (filterSkill) {
+                filteredStudents = filteredStudents.filter(student =>
+                    student.skills && student.skills.includes(filterSkill)
+                );
+            }
+
+            if (searchTerm) {
+                filteredStudents = filteredStudents.filter(student =>
+                    (student.full_name && student.full_name.toLowerCase().includes(searchTerm)) ||
+                    (student.email && student.email.toLowerCase().includes(searchTerm)) ||
+                    (student.skills && student.skills.some(s => s.toLowerCase().includes(searchTerm)))
+                );
+            }
+            
+            // Re-render the list, but *without* changing the master list
+            renderStudents(filteredStudents);
+        }
+
+        // --- 5. Render Student Data (Modified) ---
+        // Now includes a 'matchCount' in the display
+        function renderStudents(students) {
+            const container = document.getElementById('student-list-container');
+            container.innerHTML = ''; 
+
+            document.getElementById('student-count').textContent = `${students.length} Students Found`;
+
+            if (students.length === 0) {
+                container.innerHTML = '<div class="student-card-placeholder">No students match your criteria.</div>';
+                return;
+            }
+
+            students.forEach((student, index) => {
+                const rank = index + 1;
+                
+                let skillsHTML = '';
+                if (student.skills && student.skills.length > 0) {
+                    skillsHTML = student.skills.slice(0, 10).map(skill => // Show max 10 skills
+                        `<span class="skill-tag">${skill}</span>`
+                    ).join('');
+                } else {
+                    skillsHTML = '<span class="skill-tag no-skills">No skills listed</span>';
+                }
+
+                // NEW: Display the match count if it exists
+                let matchHTML = '';
+                if (student.matchCount !== undefined) {
+                    matchHTML = `
+                        <div class="student-match-count">
+                            ${student.matchCount}
+                            <span>Skills Matched</span>
+                        </div>
+                    `;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                card.innerHTML = `
+                    <div class="student-rank">#${rank}</div>
+                    <div class="student-info">
+                        <h4>${student.full_name || 'N/A'}</h4>
+                        <p>${student.email}</p>
+                        <div class="skill-tags">
+                            ${skillsHTML}
+                        </div>
+                    </div>
+                    ${matchHTML}
+                `;
+                container.appendChild(card);
+            });
+        }
+        
+        // --- 6. NEW: Handle Job Description PDF Upload ---
+        async function handleJDSubmit(event) {
+            event.preventDefault();
+            const file = document.getElementById('jd-file').files[0];
+            if (!file) {
+                alert('Please choose a PDF file first.');
+                return;
+            }
+            if (JD_ANALYSIS_API_URL.includes("YOUR-FRIENDS-NGROK-URL")) {
+                 alert("Error: Please update the 'JD_ANALYSIS_API_URL' variable in officer-dashboard.html with your friend's ngrok URL.");
+                return;
+            }
+            
+            alert('Uploading and analyzing Job Description... This may take a moment.');
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                // 1. Call the external API
+                const response = await fetch(JD_ANALYSIS_API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to analyze JD');
+                }
+
+                // 2. Extract and flatten the skills
+                const requiredSkillsObject = data.parsed_data.skills;
+                const requiredSkillsList = flattenSkills(requiredSkillsObject);
+                
+                // 3. Display the required skills
+                displayRequiredSkills(requiredSkillsList);
+
+                // 4. Rank and re-render the student list
+                rankAndRenderStudents(requiredSkillsList);
+                
+            } catch (error) {
+                console.error('JD analysis failed:', error);
+                alert('An error occurred during JD analysis: ' + error.message);
+            }
+        }
+
+        // --- 7. NEW: Helper to flatten the skills object ---
+        function flattenSkills(skillsObject) {
+            let allSkills = [];
+            if (skillsObject && typeof skillsObject === 'object') {
+                Object.values(skillsObject).forEach(skillArray => {
+                    if (Array.isArray(skillArray)) {
+                        allSkills = allSkills.concat(skillArray);
+                    }
+                });
+            }
+            // Return a unique list of skills, lowercased for matching
+            return [...new Set(allSkills.map(s => s.toLowerCase()))];
+        }
+
+        // --- 8. NEW: Helper to display the required skills ---
+        function displayRequiredSkills(skillsList) {
+            const container = document.getElementById('job-skills-container');
+            const card = document.getElementById('job-skills-card');
+            container.innerHTML = '';
+            
+            if (skillsList.length === 0) {
+                container.innerHTML = '<span class="skill-tag no-skills">No specific skills extracted from PDF.</span>';
+            } else {
+                skillsList.forEach(skill => {
+                    container.innerHTML += `<span class="skill-tag">${skill}</span>`;
+                });
+            }
+            card.style.display = 'block'; // Make the card visible
+        }
+
+        // --- 9. NEW: Helper to rank and re-render students ---
+        function rankAndRenderStudents(requiredSkillsList) {
+            // Calculate match count for each student
+            allStudentsData.forEach(student => {
+                let count = 0;
+                if (student.skills) {
+                    const studentSkillsLower = student.skills.map(s => s.toLowerCase());
+                    requiredSkillsList.forEach(reqSkill => {
+                        if (studentSkillsLower.includes(reqSkill)) {
+                            count++;
+                        }
+                    });
+                }
+                student.matchCount = count; // Add the count to the student object
+            });
+
+            // Sort the master list based on the new match count
+            allStudentsData.sort((a, b) => b.matchCount - a.matchCount);
+
+            // Re-render the list with the sorted data
+            renderStudents(allStudentsData);
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,1121 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+:root {
+    --primary-color: #007bff;
+    --primary-hover: #0056b3;
+    --gradient-start: #3b82f6;
+    --gradient-end: #8b5cf6;
+    --light-bg: #f8f9fa;
+    --white: #ffffff;
+    --text-color: #333;
+    --text-light: #666;
+    --border-color: #dee2e6;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    background-color: var(--light-bg);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+a {
+    text-decoration: none;
+    color: var(--primary-color);
+}
+
+.container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+/* --- Navigation Bar --- */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: var(--white);
+    box-shadow: var(--shadow);
+}
+
+.navbar .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.navbar .logo span {
+    background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+    color: var(--white);
+    padding: 0.25rem 0.5rem;
+    border-radius: 5px;
+    font-size: 1.25rem;
+}
+
+.navbar .nav-links {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+}
+
+.navbar .nav-links a {
+    color: var(--text-light);
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.navbar .nav-links a:hover {
+    color: var(--primary-color);
+}
+
+/* --- Buttons --- */
+.btn {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    border-radius: 5px;
+    background: var(--primary-color);
+    color: var(--white);
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.btn:hover {
+    background: var(--primary-hover);
+}
+
+.btn-gradient {
+    background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+}
+
+/* --- Auth Form (Login/Register) --- */
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 90vh;
+    padding: 2rem 0;
+}
+
+.auth-card {
+    background: var(--white);
+    padding: 2.5rem;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 450px;
+    text-align: center;
+}
+
+.auth-card .logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.auth-card .logo span {
+    background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+    color: var(--white);
+    padding: 0.75rem 1rem;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.auth-card h2 {
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.auth-card .sub-text {
+    color: var(--text-light);
+    margin-bottom: 2rem;
+}
+
+.auth-card .role-toggle {
+    display: flex;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    margin-bottom: 1.5rem;
+}
+
+.auth-card .role-toggle button {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    background: var(--white);
+    color: var(--text-light);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.auth-card .role-toggle button.active {
+    background: var(--primary-color);
+    color: var(--white);
+}
+
+.auth-card .role-toggle button:first-child {
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+}
+.auth-card .role-toggle button:last-child {
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+}
+
+.auth-form .form-group {
+    text-align: left;
+    margin-bottom: 1rem;
+}
+
+.auth-form .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.auth-form .form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.auth-form .btn {
+    width: 100%;
+    margin-top: 1rem;
+    font-size: 1rem;
+}
+
+.auth-card .switch-link {
+    margin-top: 1.5rem;
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.auth-card .switch-link a {
+    font-weight: 600;
+}
+
+/* --- Hero Section (Index Page) --- */
+.hero {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    height: 60vh;
+    background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+    color: var(--white);
+    padding: 0 2rem;
+}
+
+.hero h1 {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+}
+
+.hero p {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+    max-width: 600px;
+}
+
+.hero .cta-buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.hero .cta-buttons .btn {
+    background: var(--white);
+    color: var(--primary-color);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+/* --- Features Section (Index Page) --- */
+.features {
+    padding: 4rem 0;
+    text-align: center;
+}
+
+.features h2 {
+    font-size: 2.5rem;
+    margin-bottom: 3rem;
+}
+
+/* --- Dashboard --- */
+.dashboard-layout {
+    display: flex;
+    min-height: calc(100vh - 65px); /* Full height minus navbar */
+}
+
+.sidebar {
+    width: 250px;
+    background: var(--white);
+    box-shadow: var(--shadow);
+    padding: 2rem;
+}
+
+.sidebar .nav-links {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sidebar .nav-links a {
+    color: var(--text-light);
+    font-weight: 500;
+    padding: 0.75rem;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+}
+
+.sidebar .nav-links a:hover,
+.sidebar .nav-links a.active {
+    background: var(--light-bg);
+    color: var(--primary-color);
+}
+
+.main-content {
+    flex: 1;
+    padding: 2rem;
+}
+
+.profile-card {
+    background: var(--white);
+    padding: 2.5rem;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.profile-card .tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border-color);
+    margin-bottom: 2rem;
+}
+
+.profile-card .tabs button {
+    padding: 1rem 1.5rem;
+    border: none;
+    background: none;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-light);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+}
+
+.profile-card .tabs button.active {
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
+}
+
+.profile-form .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.profile-form .form-group {
+    margin-bottom: 0;
+}
+
+.profile-form .form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.profile-form .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.profile-form .form-group input,
+.profile-form .form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    font-size: 1rem;
+}
+
+.profile-form .btn {
+    grid-column: 1 / -1;
+    justify-self: end;
+    margin-top: 2rem;
+    width: 200px;
+}
+
+
+/* --- Added for Tab Content --- */
+.tab-content {
+    display: none; /* Hide all tab content by default */
+}
+
+.tab-content.active {
+    display: block; /* Show only the active tab content */
+}
+
+/* Styles for the Upload Resume tab */
+.upload-resume-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 2rem;
+    border: 2px dashed var(--border-color);
+    border-radius: 10px;
+    background-color: #fdfdfd;
+}
+
+.upload-resume-container .icon {
+    font-size: 3rem;
+    color: var(--primary-color);
+    background-color: #e6f2ff;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.upload-resume-container h3 {
+    font-size: 1.5rem;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+}
+
+.upload-resume-container p {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+}
+
+.upload-resume-container input[type="file"] {
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    border-radius: 5px;
+    width: 100%;
+    max-width: 300px;
+}
+
+/* --- NEW STYLES (from friend's file, adapted) --- */
+
+/* --- Results Page Styles --- */
+.results-card {
+    background: var(--white);
+    padding: 2.5rem;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+.results-card h2 {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+.results-card p {
+    color: var(--text-light);
+    margin-bottom: 2rem;
+}
+.role-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+.role-item .role-name {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+.role-item .role-percentile {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+.test-button-container {
+    text-align: center;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+.test-button-container h3 {
+    font-size: 1.5rem;
+}
+
+/* --- Technical Test Page Styles --- */
+.quiz-card {
+    background: var(--white);
+    padding: 2.5rem;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    max-width: 800px;
+    margin: 0 auto;
+}
+.quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+.quiz-header h3 {
+    font-size: 1.2rem;
+    margin: 0;
+}
+.quiz-header .progress-bar {
+    width: 150px;
+    height: 8px;
+    background: var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+}
+.quiz-header .progress-bar-inner {
+    height: 100%;
+    width: 3%; /* Start at 3% */
+    background: var(--primary-color);
+    transition: width 0.3s ease;
+}
+.question-box {
+    background: #e6f2ff;
+    border: 1px solid #b3d9ff;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+.question-box p {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+}
+.quiz-option {
+    display: block;
+    background: var(--white);
+    border: 2px solid var(--border-color);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.quiz-option:hover {
+    border-color: var(--primary-hover);
+}
+.quiz-option.selected {
+    border-color: var(--primary-color);
+    background: #e6f2ff;
+}
+.quiz-option input {
+    margin-right: 0.5rem;
+}
+.quiz-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border-color);
+    padding-top: 1.5rem;
+    margin-top: 1.5rem;
+}
+.question-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    max-width: 60%;
+}
+.question-pills .pill {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.question-pills .pill:hover {
+    background: var(--light-bg);
+}
+.question-pills .pill.active {
+    background: var(--primary-color);
+    color: var(--white);
+    border-color: var(--primary-color);
+}
+.question-pills .pill.answered {
+    background: #e6f2ff;
+    border-color: var(--primary-color);
+}
+
+/* Quiz Results Page */
+.results-summary {
+    text-align: center;
+    padding: 2rem;
+    background: #e6f2ff;
+    border-radius: 8px;
+    margin-bottom: 2rem;
+}
+.results-summary h2 {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin: 0;
+}
+.results-summary p {
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+.result-item {
+    background: #fdfdfd;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+.result-item p {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+.result-item .user-answer.correct {
+    color: #28a745;
+}
+.result-item .user-answer.incorrect {
+    color: #dc3545;
+}
+.result-item .correct-answer {
+    color: #28a745;
+    font-weight: 500;
+}
+.loading-quiz {
+    text-align: center;
+    font-size: 1.2rem;
+    padding: 3rem;
+}
+
+/* --- ADD THIS TO THE END of style.css --- */
+
+.audio-recorder {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+#record-btn, #stop-btn, #analyze-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+#record-btn:disabled, #stop-btn:disabled, #analyze-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+#stop-btn {
+    background: #dc3545; /* Red */
+}
+#stop-btn:hover {
+    background: #c82333;
+}
+
+#analysis-results h3 {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+#analysis-results h4 {
+    font-size: 1.2rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+#analysis-results p.transcription {
+    font-style: italic;
+    color: var(--text-light);
+    background: var(--light-bg);
+    padding: 1rem;
+    border-radius: 5px;
+}
+
+#analysis-results ul {
+    list-style-type: disc;
+    padding-left: 20px;
+}
+
+
+.analysis-summary-card {
+    background: var(--light-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.analysis-summary-card h4 {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+/* --- ADD THIS TO THE END of style.css --- */
+
+/* New styles for the Soft Skills Analysis Report */
+#report-content h3 {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+#report-content h4 {
+    font-size: 1.2rem;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+#report-content p.transcription {
+    font-style: italic;
+    color: var(--text-light);
+    background: var(--light-bg);
+    padding: 1rem;
+    border-radius: 5px;
+    line-height: 1.7;
+}
+
+/* This is the new card grid */
+.report-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 columns */
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.metric-card {
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    box-shadow: var(--shadow);
+}
+
+.metric-card .icon {
+    font-size: 2rem;
+    color: var(--primary-color);
+    background-color: #e6f2ff;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.metric-card .metric-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 0.25rem;
+}
+
+.metric-card .metric-score {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+}
+
+.metric-card .metric-details {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    line-height: 1.5;
+}
+
+/* Final Summary Card Styles */
+.analysis-summary-card {
+    background: var(--light-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.analysis-summary-card h4 {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+/* Responsive fix for the grid */
+@media (max-width: 768px) {
+    .report-metrics-grid {
+        grid-template-columns: 1fr; /* Stack on mobile */
+    }
+}
+
+/* --- ADD THIS TO THE END of style.css --- */
+
+/* Dashboard Welcome Banner */
+.welcome-banner {
+    background: linear-gradient(to right, var(--gradient-start), var(--gradient-end));
+    color: var(--white);
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+}
+.welcome-banner h2 {
+    font-size: 2rem;
+    font-weight: 600;
+}
+
+/* Dashboard Profile Completion Card */
+.profile-completion-card {
+    background: var(--white);
+    padding: 2.5rem;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+.profile-completion-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+.profile-completion-card p {
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+}
+.step {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.step:last-child {
+    border-bottom: none;
+}
+.step .step-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.step .step-icon {
+    font-size: 1rem;
+    color: var(--primary-color);
+    background: #e6f2ff;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.step .step-name {
+    font-weight: 500;
+}
+.step .step-status {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+.step .step-status.completed {
+    color: #28a745;
+}
+.step .step-status.pending {
+    color: #fd7e14;
+}
+
+/* Dashboard Info Cards */
+.card-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+.info-card {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 1.5rem;
+    background: var(--white);
+    box-shadow: var(--shadow);
+}
+.info-card .icon {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+.info-card h4 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+.info-card p {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+.info-card a {
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+/* New Profile Summary Card */
+.profile-summary-card {
+    background: var(--white);
+    padding: 2.5rem;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+}
+.profile-summary-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-color);
+}
+.profile-summary-card .user-info {
+    font-size: 1.1rem;
+    color: var(--text-light);
+}
+.profile-summary-card .user-info span {
+    color: var(--text-color);
+    font-weight: 500;
+}
+.profile-summary-card hr {
+    border: 0;
+    border-top: 1px solid var(--border-color);
+    margin: 1.5rem 0;
+}
+/* We re-use .role-item from results.html */
+
+/* --- ADD THIS TO THE END of style.css --- */
+
+/* --- Officer Dashboard Styles --- */
+
+.main-content {
+    /* Override to allow for no sidebar */
+    width: 100%; 
+}
+
+.upload-job-card {
+    background: var(--white);
+    padding: 1.5rem 2rem;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.upload-job-card h4 {
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.upload-job-card p {
+    color: var(--text-light);
+}
+.upload-jd-form {
+    display: flex;
+    gap: 1rem;
+}
+.upload-jd-form input[type="file"] {
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    border-radius: 5px;
+}
+
+.student-list-card {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+}
+.student-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.student-list-header h3 {
+    font-size: 1.5rem;
+    margin: 0;
+}
+.student-list-header p {
+    color: var(--text-light);
+    margin: 0;
+}
+.search-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 0.5rem 1rem;
+    align-items: center;
+}
+.search-bar .fa-search {
+    color: var(--text-light);
+}
+.search-bar input {
+    flex-grow: 1;
+    border: none;
+    font-size: 1rem;
+    padding: 0.5rem;
+}
+.search-bar input:focus {
+    outline: none;
+}
+.search-bar select {
+    border: none;
+    background: var(--light-bg);
+    padding: 0.5rem;
+    border-radius: 5px;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.student-card {
+    display: flex;
+    align-items: flex-start;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.student-card:last-child {
+    border-bottom: none;
+}
+.student-rank {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-light);
+    background: var(--light-bg);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1.5rem;
+}
+.student-info h4 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0 0 0.25rem 0;
+}
+.student-info p {
+    color: var(--text-light);
+    margin: 0 0 0.75rem 0;
+    font-size: 0.9rem;
+}
+.skill-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.skill-tag {
+    background: #e6f2ff;
+    color: #0056b3;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.25rem 0.75rem;
+    border-radius: 15px;
+}
+.skill-tag.no-skills {
+    background: #f8f9fa;
+    color: var(--text-light);
+}
+.student-card-placeholder {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-light);
+    font-size: 1.1rem;
+}
+
+/* --- ADD THIS TO THE END of style.css --- */
+
+/* --- Officer Dashboard - Job Skills Card --- */
+.job-skills-card {
+    background: var(--white);
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    margin-bottom: 2rem;
+    display: none; /* Hidden by default */
+}
+.job-skills-card h3 {
+    font-size: 1.5rem;
+    margin: 0 0 1rem 0;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.job-skills-card .skill-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.job-skills-card .skill-tag {
+    background: #e6f2ff;
+    color: #0056b3;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.35rem 0.85rem;
+    border-radius: 15px;
+}
+
+/* --- Student Card Modifications --- */
+.student-match-count {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-right: 1.5rem;
+    text-align: right;
+    min-width: 120px;
+}
+.student-match-count span {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-light);
+    display: block;
+}
+
+/* --- ADD THIS TO THE END of style.css --- */
+
+/* --- Sidebar Icon Style --- */
+.sidebar .nav-links a i {
+    width: 20px; /* Gives the icon a set space */
+    margin-right: 0.75rem; /* Space between icon and text */
+    text-align: center; /* Ensures icons are centered */
+}

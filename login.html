@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - AI Placements Predictor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="logo">
+                <span>AI</span>
+            </div>
+            <h2>Welcome Back</h2>
+            <p class="sub-text">Sign in to continue to your dashboard</p>
+
+            <form class="auth-form" id="login-form">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="student@university.edu" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn btn-gradient">Sign In</button>
+            </form>
+
+            <p class="switch-link">
+                Don't have an account? <a href="register.html">Sign up</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // --- Helper to build full redirect paths ---
+        function getRedirectPath(targetFile) {
+            const currentPath = window.location.pathname;
+            const dirPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+            return dirPath + '/' + targetFile;
+        }
+        
+        // --- Helper to parse JWT token ---
+        function parseJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                return null; // Invalid token
+            }
+        }
+
+        const loginForm = document.getElementById('login-form');
+
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            const formData = new FormData();
+            formData.append('username', email);
+            formData.append('password', password);
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/login', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    localStorage.setItem('accessToken', data.access_token);
+                    
+                    // 1. Parse the token to find the role
+                    const tokenData = parseJwt(data.access_token);
+                    const userRole = tokenData ? tokenData.role : 'student'; // Default to student
+
+                    alert('Login successful! Redirecting...');
+                    
+                    // 2. Redirect based on the role
+                    if (userRole === 'officer') {
+                        window.location.href = getRedirectPath('officer-dashboard.html');
+                    } else {
+                        window.location.href = getRedirectPath('dashboard.html');
+                    }
+                    
+                } else {
+                    alert('Error: ' + data.detail);
+                }
+            } catch (error) {
+                console.error('Login failed:', error);
+                // This is the error from your screenshot
+                alert('An error occurred. Please try again. (Is the backend server running with CORS?)');
+            }
+        });
+    </script>
+</body>
+</html>
