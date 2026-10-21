@@ -1,3 +1,22 @@
+# Virtual Environments
 venv/
-*.pyc
+venv*/
+.venv/
+
+# Environment Variables & Secrets
 .env
+.env.*
+!.env.example
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Operating System Files
+.DS_Store
+
+# Application Temporary & Cache Files
+temp_*
+clean_*.wav

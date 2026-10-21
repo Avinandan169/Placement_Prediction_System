@@ -162,12 +162,40 @@
             border: 1px solid var(--border-color);
             color: var(--text-color);
             border-bottom-left-radius: 4px;
+            white-space: normal;
         }
-        .chat-message strong {
+        .chat-message .bot-label {
             display: block;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
             font-size: 0.8rem;
             color: #888;
+            font-weight: bold;
+        }
+        .chat-message strong:not(.bot-label) {
+            font-weight: 700;
+            color: inherit;
+        }
+        .bot .message-content p {
+            margin: 0 0 8px 0;
+            line-height: 1.5;
+        }
+        .bot .message-content p:last-child {
+            margin-bottom: 0;
+        }
+        .bot .message-content ul.chat-list,
+        .bot .message-content ol.chat-list {
+            margin: 6px 0 10px 20px;
+            padding-left: 8px;
+        }
+        .bot .message-content li {
+            margin-bottom: 5px;
+            line-height: 1.45;
+        }
+        .bot .message-content code {
+            background: rgba(0, 0, 0, 0.06);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.9em;
         }
         .user strong {
             display: none; /* Hide "You" label */
@@ -234,7 +262,10 @@
                 <div class="chat-box" id="chatBox">
                     <div class="chat-message bot">
                         <div class="message-content">
-                            <strong>Bot:</strong> Hello! I'm your AI Placement Assistant. You can ask me questions about your profile or general career advice.
+                            <strong class="bot-label">Bot:</strong>
+                            <div class="bot-body">
+                                <p>Hello! I'm your AI Placement Assistant. You can ask me questions about your profile or general career advice.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -246,6 +277,7 @@
         </main>
     </div>
 
+    <script src="config.js"></script>
     <script>
         // --- NEW: Live Chatbot Logic ---
         const chatBox = document.getElementById('chatBox');
@@ -270,7 +302,81 @@
             window.location.href = 'login.html';
         });
 
-        // --- 2. Add message to the chat UI ---
+        // --- 2. Format and sanitize bot responses ---
+        function formatBotResponse(text) {
+            if (!text) return '';
+
+            // 1. Unescape escaped markdown symbols (e.g., \*\* -> **, \* -> *, \_ -> _)
+            let clean = text.replace(/\\([*_`\\])/g, '$1');
+
+            // 2. Safely decode entities (numeric &#xHH;, &#DD;, and safe named entities)
+            clean = clean.replace(/&(?:#x([0-9a-fA-F]+)|#([0-9]+)|([a-zA-Z]+));/g, function(match, hex, dec, named) {
+                let char = '';
+                if (hex) {
+                    char = String.fromCharCode(parseInt(hex, 16));
+                } else if (dec) {
+                    char = String.fromCharCode(parseInt(dec, 10));
+                } else if (named) {
+                    const map = {
+                        amp: '&', quot: '"', apos: "'",
+                        ndash: '–', mdash: '—', lsquo: '‘', rsquo: '’',
+                        ldquo: '“', rdquo: '”', bull: '•', hellip: '…'
+                    };
+                    if (map[named.toLowerCase()]) {
+                        char = map[named.toLowerCase()];
+                    } else {
+                        return match;
+                    }
+                }
+                return (char === '<' || char === '>') ? match : char;
+            });
+
+            // 3. Escape HTML to prevent XSS vulnerabilities
+            clean = clean
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+
+            // 4. Format bold and inline code
+            clean = clean.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            clean = clean.replace(/__(.+?)__/g, '<strong>$1</strong>');
+            clean = clean.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+            // 5. Format numbered/bulleted lists and paragraphs with readable spacing
+            const lines = clean.split('\n');
+            let inOl = false;
+            let inUl = false;
+            let html = '';
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                const olMatch = line.match(/^(\d+)\.\s+(.+)$/);
+                const ulMatch = line.match(/^[-*•]\s+(.+)$/);
+
+                if (olMatch) {
+                    if (inUl) { html += '</ul>'; inUl = false; }
+                    if (!inOl) { html += '<ol class="chat-list">'; inOl = true; }
+                    html += '<li>' + olMatch[2] + '</li>';
+                } else if (ulMatch) {
+                    if (inOl) { html += '</ol>'; inOl = false; }
+                    if (!inUl) { html += '<ul class="chat-list">'; inUl = true; }
+                    html += '<li>' + ulMatch[1] + '</li>';
+                } else {
+                    if (inOl) { html += '</ol>'; inOl = false; }
+                    if (inUl) { html += '</ul>'; inUl = false; }
+                    if (line.length > 0) {
+                        html += '<p>' + line + '</p>';
+                    }
+                }
+            }
+            if (inOl) html += '</ol>';
+            if (inUl) html += '</ul>';
+
+            return html;
+        }
+
+        // --- 3. Add message to the chat UI ---
         function appendMessage(sender, text) {
             const div = document.createElement('div');
             div.classList.add('chat-message');
@@ -281,13 +387,19 @@
             
             if(sender === 'bot') {
                 const strong = document.createElement('strong');
+                strong.className = 'bot-label';
                 strong.textContent = 'Bot:';
                 contentDiv.appendChild(strong);
+
+                const bodyDiv = document.createElement('div');
+                bodyDiv.className = 'bot-body';
+                bodyDiv.innerHTML = formatBotResponse(text);
+                contentDiv.appendChild(bodyDiv);
+            } else {
+                contentDiv.appendChild(document.createTextNode(text)); // Plain text for user messages
             }
             
-            contentDiv.appendChild(document.createTextNode(text)); // Use createTextNode to prevent HTML injection
             div.appendChild(contentDiv);
-            
             chatBox.appendChild(div);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
@@ -309,7 +421,7 @@
             
             try {
                 // 3. Call the backend API
-                const response = await fetch('http://127.0.0.1:8000/chat/ask', {
+                const response = await fetch(`${API_CONFIG.MAIN_API_BASE_URL}/chat/ask`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

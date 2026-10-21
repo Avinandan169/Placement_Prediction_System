@@ -119,6 +119,7 @@
         </main>
     </div>
 
+    <script src="config.js"></script>
     <script>
         // --- Full Profile Page Logic (MODIFIED) ---
         
@@ -202,7 +203,7 @@
 
             alert('Uploading and analyzing resume... This may take a moment.');
             
-            const externalApiUrl = 'https://toxophilitic-shad-globate.ngrok-free.dev/analyze_resume/';
+            const externalApiUrl = `${API_CONFIG.AI_API_BASE_URL}/analyze_resume/`;
 
             try {
                 // --- STEP 3a: Call your friend's external API ---
@@ -264,7 +265,7 @@
             };
 
             try {
-                const response = await fetch('http://127.0.0.1:8000/profile/update', {
+                const response = await fetch(`${API_CONFIG.MAIN_API_BASE_URL}/profile/update`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -315,7 +316,7 @@
             };
 
             try {
-                const response = await fetch('http://127.0.0.1:8000/profile/update', {
+                const response = await fetch(`${API_CONFIG.MAIN_API_BASE_URL}/profile/update`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

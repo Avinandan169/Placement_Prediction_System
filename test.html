@@ -47,6 +47,7 @@
         </main>
     </div>
 
+    <script src="config.js"></script>
     <script>
         // --- Full Test Page Logic ---
         
@@ -106,7 +107,7 @@
 
             try {
                 // Call our backend's new /generate-quiz endpoint
-                const response = await fetch('http://127.0.0.1:8000/generate-quiz', {
+                const response = await fetch(`${API_CONFIG.MAIN_API_BASE_URL}/generate-quiz`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -263,7 +264,7 @@
             };
             
             try {
-                const response = await fetch('http://127.0.0.1:8000/submit-quiz', {
+                const response = await fetch(`${API_CONFIG.MAIN_API_BASE_URL}/submit-quiz`, {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',

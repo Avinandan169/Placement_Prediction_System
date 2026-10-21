@@ -76,10 +76,10 @@
         </main>
     </div>
 
+    <script src="config.js"></script>
     <script>
-        // --- IMPORTANT ---
-        // PASTE YOUR FRIEND'S NGROK URL HERE
-        const ANALYSIS_API_URL = "https://leora-reclaimable-hosea.ngrok-free.dev/analyze_audio/"; 
+        // --- API URL from config.js ---
+        const ANALYSIS_API_URL = `${API_CONFIG.AI_API_BASE_URL}/analyze_audio/`; 
 
         // --- 0. Get Elements and State ---
         const token = localStorage.getItem('accessToken');

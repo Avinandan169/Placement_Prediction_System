@@ -446,6 +446,9 @@ from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from typing import Annotated, List, Optional, Dict
 from fastapi.middleware.cors import CORSMiddleware
+from google import genai
+from google.genai import types
+from google.genai.errors import APIError
 
 # 1. Load variables
 load_dotenv()
@@ -521,20 +524,38 @@ class ChatRequest(BaseModel):
 
 # --- Config and Helper Functions ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Validate required environment variables early
+required_env_vars = [
+    'DB_USER', 'DB_PASS', 'DB_HOST', 'DB_PORT', 'DB_NAME',
+    'SECRET_KEY', 'ALGORITHM', 'ACCESS_TOKEN_EXPIRE_MINUTES'
+]
+missing_env = [var for var in required_env_vars if not os.getenv(var)]
+if missing_env:
+    raise RuntimeError(
+        f"Missing required environment variable(s): {', '.join(missing_env)}. "
+        f"Please configure them in your local .env file (see .env.example)."
+    )
+
 db_user = os.getenv('DB_USER')
 db_pass_raw = os.getenv('DB_PASS')
 db_host = os.getenv('DB_HOST')
 db_port = os.getenv('DB_PORT')
 db_name = os.getenv('DB_NAME')
-db_pass_encoded = quote_plus(db_pass_raw)
+db_pass_encoded = quote_plus(db_pass_raw) if db_pass_raw else ""
 DB_URL = (
     f"postgresql://{db_user}:{db_pass_encoded}"
     f"@{db_host}:{db_port}/{db_name}"
 )
-print(f"DEBUG: Connecting with URL: {DB_URL}")
+# Redacted database target log to prevent password exposure
+print(f"INFO: Database target configured for {db_user}@{db_host}:{db_port}/{db_name}")
+
 SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+try:
+    ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+except ValueError:
+    raise RuntimeError("ACCESS_TOKEN_EXPIRE_MINUTES must be a valid integer.")
 
 LLM_API_URL = "https://router.huggingface.co/v1/chat/completions"
 LLM_HEADERS = {
@@ -630,9 +651,15 @@ def query_llm_for_quiz(skills_dict: dict):
         raise HTTPException(status_code=500, detail=f"An unexpected error occurred during quiz generation: {e}")
 
 
-# --- NEW: LLM Helper Function (For Chatbot) ---
+# --- NEW: LLM Helper Function (For Chatbot using Google Gemini API) ---
 def query_llm_for_chat(user_message: str, chat_history: List, user_context: str):
-    """Contacts the LLM API for a conversational response."""
+    """Contacts Google Gemini API for a conversational career assistant response."""
+    gemini_api_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="GEMINI_API_KEY environment variable is not set. Cannot call Gemini API."
+        )
 
     system_prompt = f"""You are 'Placements AI', a helpful and encouraging career assistant.
 You are talking to a student. Here is their profile information from our database:
@@ -645,35 +672,62 @@ Your rules:
 3.  **Answer general questions:** If the question is not about their profile (e.g., "what is Python?", "how do I prepare for an interview?"), answer it as a general expert.
 4.  **Be concise:** Keep your answers helpful and to the point.
 """
-    
-    # Build the message list
-    messages = [{"role": "system", "content": [{"type": "text", "text": system_prompt}]}]
-    
-    # Add history
-    for msg in chat_history:
-        messages.append({"role": msg.role, "content": [{"type": "text", "text": msg.content}]})
-    
-    # Add the new user message
-    messages.append({"role": "user", "content": [{"type": "text", "text": user_message}]})
 
-    payload = {
-        "messages": messages,
-        "model": "meta-llama/Llama-4-Scout-17B-16E-Instruct:groq"
-    }
-    
-    if not os.environ.get('HF_TOKEN'):
-         raise HTTPException(status_code=500, detail="HF_TOKEN environment variable is not set. Cannot call LLM API.")
+    contents: List[types.Content] = []
+    for msg in chat_history:
+        # Map user to "user" and assistant to "model" for Gemini API
+        role = "user" if msg.role == "user" else "model"
+        contents.append(
+            types.Content(
+                role=role,
+                parts=[types.Part.from_text(text=msg.content)]
+            )
+        )
+
+    contents.append(
+        types.Content(
+            role="user",
+            parts=[types.Part.from_text(text=user_message)]
+        )
+    )
 
     try:
-        response = requests.post(LLM_API_URL, headers=LLM_HEADERS, json=payload, timeout=60)
-        response.raise_for_status() 
-        
-        llm_response_content = response.json()["choices"][0]["message"]["content"]
-        return llm_response_content
+        client = genai.Client(api_key=gemini_api_key)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=contents,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+                temperature=0.7,
+            )
+        )
+        if not response.text:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Empty response received from AI model."
+            )
+        return response.text
 
+    except APIError as e:
+        error_code = getattr(e, 'code', None)
+        if error_code == 429:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="AI service rate limit or quota exceeded. Please wait a moment and try again."
+            )
+        print(f"Gemini API Error: {type(e).__name__} (code: {error_code})")
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail="An error occurred while communicating with the AI service."
+        )
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Error in LLM chat query: {e}")
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred during chat: {e}")
+        print(f"Error in Gemini chat query: {type(e).__name__}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred during chat."
+        )
 
 
 # --- Original Endpoints ---

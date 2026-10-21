@@ -34,6 +34,7 @@
         </div>
     </div>
 
+    <script src="config.js"></script>
     <script>
         // --- Helper to build full redirect paths ---
         function getRedirectPath(targetFile) {
@@ -69,7 +70,7 @@
             formData.append('password', password);
 
             try {
-                const response = await fetch('http://127.0.0.1:8000/login', {
+                const response = await fetch(`${API_CONFIG.MAIN_API_BASE_URL}/login`, {
                     method: 'POST',
                     body: formData
                 });

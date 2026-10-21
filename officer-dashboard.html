@@ -58,11 +58,11 @@
         </div>
     </div>
 
+    <script src="config.js"></script>
     <script>
         // --- 0. Global variable to hold all student data ---
         let allStudentsData = [];
-        //    This is the external API from main(1).py
-        const JD_ANALYSIS_API_URL = "https://7932755b38e4.ngrok-free.app/analyze_resume/";
+        const JD_ANALYSIS_API_URL = `${API_CONFIG.AI_API_BASE_URL}/analyze_resume/`;
         
         // --- Helper Function ---
         function getRedirectPath(targetFile) {
@@ -102,7 +102,7 @@
             container.innerHTML = '<div class="student-card-placeholder">Loading student data...</div>';
 
             try {
-                const response = await fetch('http://127.0.0.1:8000/officer/get-students', {
+                const response = await fetch(`${API_CONFIG.MAIN_API_BASE_URL}/officer/get-students`, {
                     method: 'GET',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
