@@ -13,7 +13,7 @@ class JobRecommender:
             print(f"Error loading SentenceTransformer model: {e}")
             print("Please make sure you have an internet connection and the 'sentence-transformers' library installed.")
             sys.exit(1)
-        
+
         # --- Our "Vector Database" ---
         # We now store a dictionary for each profile:
         # 'description': For semantic vector search
@@ -23,8 +23,8 @@ class JobRecommender:
             # --- Data & AI Roles ---
             "Data Scientist": {
                 "description": """
-                    Focuses on statistical analysis, machine learning, and data visualization. 
-                    Uses Python, R, Scikit-learn, Pandas, and SQL to find insights from data. 
+                    Focuses on statistical analysis, machine learning, and data visualization.
+                    Uses Python, R, Scikit-learn, Pandas, and SQL to find insights from data.
                     Builds predictive models with TensorFlow or PyTorch.
                 """,
                 "skills": {
@@ -59,8 +59,8 @@ class JobRecommender:
             },
             "Machine Learning Engineer": {
                 "description": """
-                    Builds and deploys production-level machine learning models. 
-                    Strong in Python, TensorFlow, PyTorch, and Scikit-learn. 
+                    Builds and deploys production-level machine learning models.
+                    Strong in Python, TensorFlow, PyTorch, and Scikit-learn.
                     Understands MLOps, model optimization (like ONNX), and serving.
                 """,
                 "skills": {
@@ -71,9 +71,9 @@ class JobRecommender:
             },
             "Computer Vision Engineer": {
                 "description": """
-                    A specialist in machine learning for image and video analysis. 
-                    Deep knowledge of OpenCV, MediaPipe, YOLO, and ONNX. 
-                    Uses PyTorch or TensorFlow for custom model training. 
+                    A specialist in machine learning for image and video analysis.
+                    Deep knowledge of OpenCV, MediaPipe, YOLO, and ONNX.
+                    Uses PyTorch or TensorFlow for custom model training.
                     Works on tasks like object detection and image segmentation.
                 """,
                 "skills": {
@@ -96,8 +96,8 @@ class JobRecommender:
             },
             "Generative AI Engineer": {
                 "description": """
-                    Specializes in Large Language Models (LLMs) and diffusion models. 
-                    Uses Hugging Face, transformers, and prompt engineering. 
+                    Specializes in Large Language Models (LLMs) and diffusion models.
+                    Uses Hugging Face, transformers, and prompt engineering.
                     Builds applications on top of generative AI, like RAG systems and AI agents.
                 """,
                 "skills": {
@@ -130,11 +130,11 @@ class JobRecommender:
                     "advanced": ["data warehousing", "etl", "kpi strategy"]
                 }
             },
-            
+
             # --- Software Engineering Roles ---
             "Backend Developer": {
                 "description": """
-                    Builds the server-side logic of applications. 
+                    Builds the server-side logic of applications.
                     Expert in Python (Django, FastAPI) or other languages like Java (Spring), Go, or Node.js.
                     Manages databases like PostgreSQL/MySQL and designs REST APIs.
                 """,
@@ -389,13 +389,13 @@ class JobRecommender:
                 }
             }
         }
-        
+
         # Pre-calculate the vectors for our "database"
         print("Pre-calculating job profile embeddings...")
         self.job_titles = list(self.job_profiles.keys())
         # We only embed the 'description' field
         self.job_descriptions = [profile['description'] for profile in self.job_profiles.values()]
-        
+
         # This is the core of our "Vector DB"
         self.job_vectors = self.model.encode(self.job_descriptions)
         print(f"Vector database is ready. {len(self.job_titles)} profiles loaded.\n")
@@ -406,35 +406,52 @@ class JobRecommender:
         1. A descriptive text "document" (for embedding).
         2. A clean set of all skills (for gap analysis).
         """
-        
+
         # --- 1. Create the text document for embedding ---
         skill_str = ""
-        for category, skill_list in skills.items():
-            skill_str += f"{category}: {', '.join(skill_list)}. "
-            
+        if isinstance(skills, dict):
+            for category, skill_list in skills.items():
+                if isinstance(skill_list, list):
+                    skill_str += f"{category}: {', '.join(str(s) for s in skill_list)}. "
+
         project_str = ""
-        for title, details in projects.items():
-            project_str += f"Project: {title}. Skills used: {details['skills']}. Description: {details['desc']}. "
-            
+        if isinstance(projects, dict):
+            for title, details in projects.items():
+                if isinstance(details, dict):
+                    p_skills = details.get('skills', '')
+                    p_desc = details.get('desc', '')
+                    project_str += f"Project: {title}. Skills used: {p_skills}. Description: {p_desc}. "
+
+        degree = education.get('degree', 'Degree') if isinstance(education, dict) else 'Degree'
+        field = education.get('field', 'Field') if isinstance(education, dict) else 'Field'
+        cgpa = education.get('cgpa', 'N/A') if isinstance(education, dict) else 'N/A'
+        year = education.get('year', 'N/A') if isinstance(education, dict) else 'N/A'
+
         user_profile_text = f"""
-        Education: {education['degree']} in {education['field']} with {education['cgpa']} CGPA, graduating in {education['year']}.
+        Education: {degree} in {field} with {cgpa} CGPA, graduating in {year}.
         Technical Skills: {skill_str}
         Projects: {project_str}
         """
-        
+
         # --- 2. Create the normalized skill set for gap analysis ---
-        # This logic remains the same, as we are flattening all user skills.
         user_skill_set = set()
-        for skill_list in skills.values():
-            for skill in skill_list:
-                user_skill_set.add(skill.lower())
-        
+        if isinstance(skills, dict):
+            for skill_list in skills.values():
+                if isinstance(skill_list, list):
+                    for skill in skill_list:
+                        if skill:
+                            user_skill_set.add(str(skill).strip().lower())
+
         # Also add skills from project descriptions for a more robust set
-        for title, details in projects.items():
-            project_skills = details['skills'].split(', ')
-            for skill in project_skills:
-                if skill: # Avoid empty strings
-                    user_skill_set.add(skill.strip().lower())
+        if isinstance(projects, dict):
+            for title, details in projects.items():
+                if isinstance(details, dict):
+                    project_skills = details.get('skills', '')
+                    if isinstance(project_skills, str):
+                        for skill in project_skills.split(','):
+                            clean_s = skill.strip().lower()
+                            if clean_s:
+                                user_skill_set.add(clean_s)
 
         return user_profile_text, user_skill_set
 
@@ -443,50 +460,50 @@ class JobRecommender:
         Finds the top_k most similar job profiles for the user
         and performs a tiered skill gap analysis.
         """
-        
+
         # 1. Create the user's profile text and skill set
         user_profile_text, user_skill_set = self._create_user_profile(education, skills, projects)
-        
+
         # 2. Embed the user's profile (the "query vector")
         user_vector = self.model.encode([user_profile_text])
-        
+
         # 3. Perform the Vector Search
         similarities = cosine_similarity(user_vector, self.job_vectors)
-        
+
         # 4. Get the results and perform tiered skill gap analysis
         top_k_indices = np.argsort(similarities[0])[-top_k:][::-1]
-        
+
         recommendations = []
         for idx in top_k_indices:
             job_title = self.job_titles[idx]
-            
+
             # --- Tiered Skill Gap Analysis ---
             # Get the structured skill dictionary for this job
             required_skills_dict = self.job_profiles[job_title]['skills']
-            
+
             # Calculate gap for each level
             basic_gap = list(set(required_skills_dict.get('basic', [])) - user_skill_set)
             intermediate_gap = list(set(required_skills_dict.get('intermediate', [])) - user_skill_set)
             advanced_gap = list(set(required_skills_dict.get('advanced', [])) - user_skill_set)
-            
+
             # Store the gaps in a structured dictionary
             skill_gap = {
                 "basic_missing": basic_gap,
                 "intermediate_missing": intermediate_gap,
                 "advanced_missing": advanced_gap
             }
-            
+
             recommendations.append({
                 "job_profile": job_title,
-                "match_score": similarities[0][idx],
+                "match_score": float(similarities[0][idx]),
                 "skill_gap": skill_gap # Append the new gap dictionary
             })
-            
+
         return recommendations
 
 # --- Example Usage ---
 if __name__ == "__main__":
-    
+
     # 1. Define the user's input (from your example)
     user_education = {
         "place": "Tier 1 College",
@@ -495,7 +512,7 @@ if __name__ == "__main__":
         "year": "2025",
         "cgpa": "9.0"
     }
-    
+
     user_skills = {
         "Languages": ["Python", "C++"],
         "Backend": ["Django", "FastAPI"],
@@ -504,7 +521,7 @@ if __name__ == "__main__":
         "Machine Learning": ["PyTorch", "TensorFlow", "YOLO", "ONNX", "OpenCV", "MediaPipe", "Scikit-learn", "Numpy"],
         "Generative AI": ["Large Language Models (LLMs)", "Hugging Face"]
     }
-    
+
     user_projects = {
         "Sign Language Captioning": {
             "skills": "Python, Scikit-learn, OpenCV, MediaPipe",
@@ -519,40 +536,40 @@ if __name__ == "__main__":
             "desc": "Created an AI tool using a YOLOv8 model... to mitigate overfitting... Automated the analysis of CAD drawings."
         }
     }
-    
+
     # 2. Initialize the recommender system
     recommender = JobRecommender()
-    
+
     # 3. Get recommendations
     my_recommendations = recommender.recommend_jobs(user_education, user_skills, user_projects, top_k=3)
-    
+
     # 4. Print the results
     print("\n--- Top 3 Job Profile Recommendations ---")
     for rec in my_recommendations:
         print(f"  - Job Profile: {rec['job_profile']}")
         print(f"  - Match Score: {rec['match_score']:.4f}")
-        
+
         # Print the tiered skill gap
         skill_gap = rec['skill_gap']
         has_gap = False
-        
+
         if skill_gap['basic_missing']:
             gap_str = ", ".join([s.capitalize() for s in skill_gap['basic_missing']])
             print(f"  - Missing BASIC Skills: {gap_str}")
             has_gap = True
-        
+
         if skill_gap['intermediate_missing']:
             gap_str = ", ".join([s.capitalize() for s in skill_gap['intermediate_missing']])
             print(f"  - Missing INTERMEDIATE Skills: {gap_str}")
             has_gap = True
-            
+
         if skill_gap['advanced_missing']:
             gap_str = ", ".join([s.capitalize() for s in skill_gap['advanced_missing']])
             print(f"  - Missing ADVANCED Skills: {gap_str}")
             has_gap = True
-            
+
         if not has_gap:
             print(f"  - Skill Match: Excellent! You meet all listed skill requirements.")
-            
+
         print("-" * 20)
 

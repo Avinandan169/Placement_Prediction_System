@@ -99,68 +99,53 @@ HF_TOKEN=your_huggingface_api_token
 
 ---
 
-## 5. Run the Backend Server
+## 5. System Dependencies (macOS with Homebrew)
 
-Activate your existing virtual environment (`venv311`) and start the FastAPI server:
-
-```bash
-# From the project directory
-cp .env.example .env
-
-# 1. Activate virtual environment
-source venv311/bin/activate
-
-# 2. Start FastAPI with Uvicorn
-uvicorn main:app --reload --port 8000
-```
-
-The `cp` command is required because `main.py` intentionally refuses to start
-without database and JWT configuration. Do not commit `.env`; it contains local
-configuration and secrets. If your environment is named `.venv` instead of
-`venv311`, use `source .venv/bin/activate`.
-
-Resume analysis is provided by the separate AI service in `backend.py`, not by
-`main.py`. Run it in a second terminal on port 8001:
+For audio processing (Whisper speech-to-text) and scanned PDF OCR fallback:
 
 ```bash
-source .venv/bin/activate
-AI_API_PORT=8001 python backend.py
-```
+# Required for Whisper audio transcription and WebM recording decoding:
+brew install ffmpeg
 
-The frontend sends authentication and profile requests to port 8000 and
-resume-analysis requests to port 8001. If `backend.py` is running through
-Ngrok/Colab, replace `AI_API_BASE_URL` in `config.js` with the public URL it
-prints. For local development, `backend.py` no longer requires an interactive
-Ngrok token. Add `GEMINI_API_KEY=...` to `.env` to enable actual resume
-analysis. To use Ngrok explicitly, set `ENABLE_NGROK=true` and
-`NGROK_AUTHTOKEN=...` in `.env`.
-
-On macOS, the AI service uses the `certifi` CA bundle for EasyOCR model
-downloads. If model download still fails, update the local Python
-certificates or download the EasyOCR model once on a network that permits
-Python HTTPS downloads.
-
-Text-based PDFs are extracted without Poppler. Scanned/image-only PDFs still
-need Poppler for OCR:
-
-```bash
+# Required for scanned PDF conversion fallback (text-based PDFs work without it):
 brew install poppler
-```
-
-### Verify Server Health
-Visit `http://127.0.0.1:8000/` in your browser. You should see:
-```json
-{
-  "status": "success",
-  "message": "FastAPI is running and connected to PostgreSQL!"
-}
 ```
 
 ---
 
-## 6. Run the Frontend
+## 6. Run the Backend Services
 
-In a separate terminal window, serve the frontend HTML files:
+The application uses a coordinated dual-service architecture:
+
+### Service 1: Main FastAPI Backend (Port 8000)
+Handles authentication, student profiles, technical quizzes, Gemini chatbot, and placement officer data.
+
+```bash
+# 1. Activate virtual environment
+source venv311/bin/activate
+
+# 2. Start FastAPI with Uvicorn on Port 8000
+uvicorn main:app --reload --port 8000
+```
+
+### Service 2: AI & ML Microservice (Port 8001)
+Handles resume parsing, job recommendation vector search (`JobRecommender`), and audio communication analysis (`CommunicationAnalyzer`).
+
+```bash
+# 1. Open a second terminal and activate virtual environment
+source venv311/bin/activate
+
+# 2. Start AI microservice on Port 8001
+AI_API_PORT=8001 python backend.py
+```
+
+*Note: For local development, `backend.py` runs natively on `http://127.0.0.1:8001`. If running via Colab/Ngrok, set `ENABLE_NGROK=true` and update `AI_API_BASE_URL` in `config.js` with the public ngrok URL.*
+
+---
+
+## 7. Run the Frontend
+
+In a third terminal window, serve the frontend HTML files:
 
 ```bash
 python3 -m http.server 5500
