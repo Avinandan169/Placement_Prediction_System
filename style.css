@@ -50,10 +50,12 @@ a {
 .navbar .logo {
     display: flex;
     align-items: center;
+    flex: 0 0 auto;
     gap: 0.5rem;
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--text-color);
+    white-space: nowrap;
 }
 
 .navbar .logo span {
@@ -259,6 +261,85 @@ a {
 .features h2 {
     font-size: 2.5rem;
     margin-bottom: 3rem;
+}
+
+/* --- Informational Pages --- */
+.content-page {
+    min-height: calc(100vh - 74px);
+    padding: 4rem 2rem;
+}
+
+.content-card {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3rem;
+    background: var(--white);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+}
+
+.content-card h1 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.content-card h2 {
+    margin-top: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.content-card p {
+    color: var(--text-light);
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .navbar {
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .navbar .nav-links {
+        order: 3;
+        width: 100%;
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    .navbar .btn {
+        padding: 0.6rem 1rem;
+    }
+
+    .hero {
+        min-height: calc(100vh - 125px);
+        height: auto;
+        padding: 4rem 1.25rem;
+    }
+
+    .hero h1 {
+        font-size: clamp(2.25rem, 10vw, 3.5rem);
+        line-height: 1.2;
+    }
+
+    .hero p {
+        font-size: 1rem;
+    }
+
+    .hero .cta-buttons {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .content-page {
+        padding: 2rem 1rem;
+    }
+
+    .content-card {
+        padding: 2rem 1.25rem;
+    }
 }
 
 /* --- Dashboard --- */

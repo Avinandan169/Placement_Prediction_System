@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - AI Placements Predictor</title>
+    <title>Login - AI Placement Predictor</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -75,7 +75,7 @@
                     body: formData
                 });
 
-                const data = await response.json();
+                const data = await response.json().catch(() => ({}));
 
                 if (response.ok) {
                     localStorage.setItem('accessToken', data.access_token);
@@ -94,12 +94,14 @@
                     }
                     
                 } else {
-                    alert('Error: ' + data.detail);
+                    alert('Login failed: ' + (data.detail || `Backend returned HTTP ${response.status}.`));
                 }
             } catch (error) {
                 console.error('Login failed:', error);
-                // This is the error from your screenshot
-                alert('An error occurred. Please try again. (Is the backend server running with CORS?)');
+                alert(
+                    `Cannot connect to the backend at ${API_CONFIG.MAIN_API_BASE_URL}. ` +
+                    'Start the FastAPI server and make sure your local .env and PostgreSQL database are configured.'
+                );
             }
         });
     </script>

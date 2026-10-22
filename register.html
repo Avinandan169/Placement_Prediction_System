@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Account - AI Placements Predictor</title>
+    <title>Create Account - AI Placement Predictor</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -108,7 +108,7 @@
                 body: JSON.stringify(requestBody)
             });
 
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
 
             if (response.ok) {
                 alert('Account created successfully! Please log in.');
@@ -116,11 +116,14 @@
                 window.location.href = getRedirectPath('login.html');
 
             } else {
-                alert('Error: ' + data.detail); // Show backend error
+                alert('Registration failed: ' + (data.detail || `Backend returned HTTP ${response.status}.`));
             }
         } catch (error) {
             console.error('Registration failed:', error);
-            alert('An error occurred. Check the console and make sure your backend is running with CORS.');
+            alert(
+                `Cannot connect to the backend at ${API_CONFIG.MAIN_API_BASE_URL}. ` +
+                'Start the FastAPI server and make sure your local .env and PostgreSQL database are configured.'
+            );
         }
     });
 </script>

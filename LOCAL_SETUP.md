@@ -104,11 +104,47 @@ HF_TOKEN=your_huggingface_api_token
 Activate your existing virtual environment (`venv311`) and start the FastAPI server:
 
 ```bash
+# From the project directory
+cp .env.example .env
+
 # 1. Activate virtual environment
 source venv311/bin/activate
 
 # 2. Start FastAPI with Uvicorn
 uvicorn main:app --reload --port 8000
+```
+
+The `cp` command is required because `main.py` intentionally refuses to start
+without database and JWT configuration. Do not commit `.env`; it contains local
+configuration and secrets. If your environment is named `.venv` instead of
+`venv311`, use `source .venv/bin/activate`.
+
+Resume analysis is provided by the separate AI service in `backend.py`, not by
+`main.py`. Run it in a second terminal on port 8001:
+
+```bash
+source .venv/bin/activate
+AI_API_PORT=8001 python backend.py
+```
+
+The frontend sends authentication and profile requests to port 8000 and
+resume-analysis requests to port 8001. If `backend.py` is running through
+Ngrok/Colab, replace `AI_API_BASE_URL` in `config.js` with the public URL it
+prints. For local development, `backend.py` no longer requires an interactive
+Ngrok token. Add `GEMINI_API_KEY=...` to `.env` to enable actual resume
+analysis. To use Ngrok explicitly, set `ENABLE_NGROK=true` and
+`NGROK_AUTHTOKEN=...` in `.env`.
+
+On macOS, the AI service uses the `certifi` CA bundle for EasyOCR model
+downloads. If model download still fails, update the local Python
+certificates or download the EasyOCR model once on a network that permits
+Python HTTPS downloads.
+
+Text-based PDFs are extracted without Poppler. Scanned/image-only PDFs still
+need Poppler for OCR:
+
+```bash
+brew install poppler
 ```
 
 ### Verify Server Health
