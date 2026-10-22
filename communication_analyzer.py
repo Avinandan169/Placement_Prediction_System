@@ -42,7 +42,7 @@ class CommunicationAnalyzer:
         except Exception as e:
             print(f"Error loading Whisper model: {e}")
             print("Please ensure you have an internet connection to download the model.")
-            sys.exit(1)
+            raise RuntimeError("Whisper model could not be loaded.") from e
 
         print("Initializing Gemini text analysis model...")
         self.gemini_model = self._setup_gemini_model()
@@ -75,7 +75,7 @@ class CommunicationAnalyzer:
 
         try:
             model = genai.GenerativeModel(
-                'gemini-2.5-flash-preview-09-2025',
+                'gemini-2.5-flash',
                 generation_config=genai.GenerationConfig(
                     response_mime_type="application/json",
                     response_schema=json_schema
@@ -327,5 +327,3 @@ class CommunicationAnalyzer:
                 "prosody_analysis": prosody
             }
         }
-
-
