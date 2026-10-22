@@ -8,11 +8,20 @@ from pydantic import BaseModel
 import shutil
 from typing import List, Dict, Any, Optional
 import time
-from getpass import getpass
 import threading
+import certifi
+from dotenv import load_dotenv
 
 # --- Colab/Ngrok specific imports ---
 from pyngrok import ngrok, conf
+
+load_dotenv()
+# EasyOCR downloads its model through Python's HTTPS stack. Use the bundled
+# Mozilla CA certificates on macOS when the system trust store is unavailable.
+os.environ.setdefault("SSL_CERT_FILE", certifi.where())
+os.environ.setdefault("REQUESTS_CA_BUNDLE", certifi.where())
+AI_API_PORT = int(os.getenv("AI_API_PORT", "8001"))
+ENABLE_NGROK = os.getenv("ENABLE_NGROK", "").lower() in {"1", "true", "yes"}
 
 # --- Import your AI/ML classes ---
 # (These files must be in the same directory)
@@ -24,6 +33,7 @@ try:
     import easyocr
     import numpy as np
     from pdf2image import convert_from_path
+    from pypdf import PdfReader
     import google.generativeai as genai
 except ImportError as e:
     print(f"Error importing modules: {e}")
@@ -51,30 +61,21 @@ except Exception as e:
 #
 # --- 1. API Key and Model Setup ---
 #
-# --- Get API Keys from user input ---
-GOOGLE_API_KEY = getpass("Please paste your Gemini API Key (from AI Studio): ")
-if not GOOGLE_API_KEY:
-    print("Gemini API key is required. Exiting.")
-    sys.exit(1)
-
-NGROK_AUTHTOKEN = getpass("Please paste your Ngrok Authtoken (from [ngrok.com/dashboard](https://ngrok.com/dashboard)): ")
-if not NGROK_AUTHTOKEN:
-    print("Ngrok authtoken is required. Exiting.")
-    sys.exit(1)
+# --- Read configuration from .env/environment ---
+GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+NGROK_AUTHTOKEN = os.getenv("NGROK_AUTHTOKEN")
 
 # Configure Gemini
-try:
-    genai.configure(api_key=GOOGLE_API_KEY)
-except Exception as e:
-    print(f"Error configuring Gemini API: {e}")
-    sys.exit(1)
+if GOOGLE_API_KEY:
+   genai.configure(api_key=GOOGLE_API_KEY)
+else:
+   print("WARNING: GEMINI_API_KEY is not configured. Resume analysis will be unavailable.")
 
-# Configure Ngrok
-try:
-    conf.get_default().auth_token = NGROK_AUTHTOKEN
-except Exception as e:
-    print(f"Error configuring Ngrok: {e}")
-    sys.exit(1)
+# Configure Ngrok only when explicitly enabled.
+if ENABLE_NGROK:
+   if not NGROK_AUTHTOKEN:
+       raise RuntimeError("ENABLE_NGROK is enabled but NGROK_AUTHTOKEN is not configured.")
+   conf.get_default().auth_token = NGROK_AUTHTOKEN
 
 # --- Pre-load AI Models (Global State) ---
 print("Server is starting... Loading AI models. This may take a moment.")
@@ -97,9 +98,15 @@ except Exception as e:
 
 try:
     # Load Communication Analyzer (loads Whisper, Parselmouth, and Gemini)
-    analyzer = CommunicationAnalyzer(gemini_api_key=GOOGLE_API_KEY)
+    analyzer = None
+    if GOOGLE_API_KEY:
+        try:
+            analyzer = CommunicationAnalyzer(gemini_api_key=GOOGLE_API_KEY)
+        except Exception as e:
+            print(f"WARNING: Voice analysis is unavailable: {e}")
 
-    print("AI models loaded successfully - Voice Analyzer")
+    if analyzer:
+        print("AI models loaded successfully - Voice Analyzer")
 
 except Exception as e:
     print(f"Fatal error during model loading: {e}")
@@ -113,14 +120,30 @@ except Exception as e:
 #
 
 def detect_document_text(path: str, reader: easyocr.Reader) -> str:
-    """Uses EasyOCR to extract text from a PDF path."""
+    """Extract selectable PDF text, falling back to EasyOCR for scanned PDFs."""
+    try:
+        extracted_pages = [
+            page.extract_text() or "" for page in PdfReader(path).pages
+        ]
+        selectable_text = "\n\n--- END OF PAGE ---\n\n".join(extracted_pages).strip()
+        if selectable_text:
+            return selectable_text
+    except Exception as e:
+        print(f"Selectable PDF text extraction failed; trying OCR: {e}")
+
     try:
         images = convert_from_path(path)
         if not images:
             raise Exception("PDF is empty or could not be read.")
     except Exception as e:
-        print(f"Error converting PDF. Is 'poppler' installed? Error: {e}")
-        raise HTTPException(status_code=500, detail=f"PDF conversion failed. Is poppler installed? Error: {e}")
+        print(f"Error converting scanned PDF: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "This PDF contains no selectable text and OCR requires Poppler. "
+                "Install it with 'brew install poppler', then restart backend.py."
+            )
+        ) from e
 
     full_text = []
     for i, img in enumerate(images):
@@ -198,7 +221,7 @@ def parse_resume_to_json(resume_text: str) -> dict:
 
     try:
         model = genai.GenerativeModel(
-            'gemini-2.5-flash-preview-09-2025',
+            'gemini-2.5-flash',
             generation_config=genai.GenerationConfig(
                 response_mime_type="application/json",
                 response_schema=json_schema
@@ -322,6 +345,12 @@ def read_root():
 @app.post("/analyze_resume/", response_model=ResumeAnalysisResponse)
 async def analyze_resume(file: UploadFile = File(...)):
 
+    if not GOOGLE_API_KEY:
+        raise HTTPException(
+            status_code=503,
+            detail="Resume analysis is unavailable until GEMINI_API_KEY is configured."
+        )
+
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Invalid file type. Please upload a PDF.")
 
@@ -379,6 +408,12 @@ async def analyze_resume(file: UploadFile = File(...)):
 # --- FIX: Updated response_model to use the new unique class ---
 @app.post("/analyze_audio/", response_model=AudioAnalysisResponse)
 async def analyze_audio(file: UploadFile = File(...)):
+
+    if analyzer is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Voice analysis is unavailable. Resume analysis is still available."
+        )
 
     # Check if the file is an audio file
     if not file.content_type.startswith("audio/"):
@@ -438,7 +473,7 @@ def run_with_ngrok(app):
     print("Starting ngrok tunnel...")
     public_url = None # Initialize public_url
     try:
-        public_url = ngrok.connect(8000)
+        public_url = ngrok.connect(AI_API_PORT)
         print("---")
         print(f"✅ Your backend is running at: {public_url}")
         print("---")
@@ -455,7 +490,7 @@ def run_with_ngrok(app):
 
     # Start uvicorn server in a new thread
     def run_uvicorn():
-        uvicorn.run(app, host="127.0.0.1", port=8000, log_level="info")
+        uvicorn.run(app, host="127.0.0.1", port=AI_API_PORT, log_level="info")
 
     uvicorn_thread = threading.Thread(target=run_uvicorn)
     uvicorn_thread.start()
@@ -470,7 +505,13 @@ def run_with_ngrok(app):
             ngrok.disconnect(public_url)
         print("Server shut down.")
 
-# --- Start the server ---
-# This is the last line of the script.
-# When you run this cell in Colab, this function will be called.
-run_with_ngrok(app)
+def run_server():
+    if ENABLE_NGROK:
+        run_with_ngrok(app)
+    else:
+        print(f"AI service is running at http://127.0.0.1:{AI_API_PORT}")
+        uvicorn.run(app, host="127.0.0.1", port=AI_API_PORT, log_level="info")
+
+
+if __name__ == "__main__":
+    run_server()
