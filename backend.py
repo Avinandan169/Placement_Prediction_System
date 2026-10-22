@@ -12,9 +12,6 @@ import threading
 import certifi
 from dotenv import load_dotenv
 
-# --- Colab/Ngrok specific imports ---
-from pyngrok import ngrok, conf
-
 load_dotenv()
 # EasyOCR downloads its model through Python's HTTPS stack. Use the bundled
 # Mozilla CA certificates on macOS when the system trust store is unavailable.
@@ -23,39 +20,48 @@ os.environ.setdefault("REQUESTS_CA_BUNDLE", certifi.where())
 AI_API_PORT = int(os.getenv("AI_API_PORT", "8001"))
 ENABLE_NGROK = os.getenv("ENABLE_NGROK", "").lower() in {"1", "true", "yes"}
 
-# --- Import your AI/ML classes ---
-# (These files must be in the same directory)
-try:
-    # This is your existing file
-    from job_recommender import JobRecommender
+# --- Colab/Ngrok specific imports (loaded only when enabled) ---
+ngrok = None
+conf = None
+if ENABLE_NGROK:
+    try:
+        from pyngrok import ngrok, conf
+    except ImportError as e:
+        raise RuntimeError("ENABLE_NGROK is set to true, but pyngrok is not installed. Install with: pip install pyngrok") from e
 
-    # We are bringing the functions from Resume_OCR.py into this file
-    import easyocr
-    import numpy as np
-    from pdf2image import convert_from_path
+# --- Import AI/ML classes ---
+try:
+    from job_recommender import JobRecommender
+except ImportError as e:
+    JobRecommender = None
+    print(f"Warning: job_recommender could not be imported: {e}")
+
+try:
     from pypdf import PdfReader
+except ImportError as e:
+    PdfReader = None
+    print(f"Warning: pypdf could not be imported: {e}")
+
+try:
+    import easyocr
+    from pdf2image import convert_from_path
+    import numpy as np
+except ImportError as e:
+    easyocr = None
+    convert_from_path = None
+    print(f"Notice: EasyOCR/pdf2image not available. Text-based PDF extraction via pypdf will be used: {e}")
+
+try:
     import google.generativeai as genai
 except ImportError as e:
-    print(f"Error importing modules: {e}")
-    print("Please make sure 'job_recommender.py' is uploaded to your Colab session.")
-    print("And that you have run: !pip install -r requirements.txt")
-    sys.exit(1)
-except Exception as e:
-    print(f"An unexpected error occurred during import: {e}")
-    sys.exit(1)
+    genai = None
+    print(f"Warning: google.generativeai could not be imported: {e}")
 
 try:
-    # This file contains your CommunicationAnalyzer class
     from communication_analyzer import CommunicationAnalyzer
-    # Note: google.generativeai as genai is already imported above
 except ImportError as e:
-    print(f"Error importing modules: {e}")
-    print("Please make sure 'communication_analyzer.py' is uploaded to your Colab session.")
-    print("And that you have run: !pip install -r requirements.txt")
-    sys.exit(1)
-except Exception as e:
-    print(f"An unexpected error occurred during import: {e}")
-    sys.exit(1)
+    CommunicationAnalyzer = None
+    print(f"Warning: communication_analyzer could not be imported: {e}")
 
 
 #
@@ -79,57 +85,62 @@ if ENABLE_NGROK:
 
 # --- Pre-load AI Models (Global State) ---
 print("Server is starting... Loading AI models. This may take a moment.")
-try:
-    # Load Job Recommender (loads sentence-transformer model)
-    recommender = JobRecommender()
+recommender = None
+if JobRecommender is not None:
+    try:
+        recommender = JobRecommender()
+        print("AI models loaded successfully - Job Recommender")
+    except Exception as e:
+        print(f"WARNING: Job Recommender failed to load: {e}")
 
-    # Load EasyOCR (downloads model)
-    print("Initializing EasyOCR... This may take a moment (one-time setup).")
-    ocr_reader = easyocr.Reader(['en'])
+ocr_reader = None
 
-    print("AI models loaded successfully - Job Recommender")
-
-except Exception as e:
-    print(f"Fatal error during model loading: {e}")
-    print("This could be due to the numpy 1.x vs 2.x issue or a network problem.")
-    print("Please ensure you have run: !pip install -r requirements.txt")
-    print("Also ensure your 'local-model' folder is set up correctly in 'job_recommender.py' if you are offline.")
-    sys.exit(1)
-
-try:
-    # Load Communication Analyzer (loads Whisper, Parselmouth, and Gemini)
-    analyzer = None
-    if GOOGLE_API_KEY:
+def get_ocr_reader():
+    global ocr_reader
+    if ocr_reader is None and easyocr is not None:
         try:
-            analyzer = CommunicationAnalyzer(gemini_api_key=GOOGLE_API_KEY)
+            print("Initializing EasyOCR... This may take a moment.")
+            ocr_reader = easyocr.Reader(['en'])
+            print("AI models loaded successfully - EasyOCR")
         except Exception as e:
-            print(f"WARNING: Voice analysis is unavailable: {e}")
+            print(f"Notice: EasyOCR model initialization failed: {e}")
+    return ocr_reader
 
-    if analyzer:
+analyzer = None
+if CommunicationAnalyzer is not None and GOOGLE_API_KEY:
+    try:
+        analyzer = CommunicationAnalyzer(gemini_api_key=GOOGLE_API_KEY)
         print("AI models loaded successfully - Voice Analyzer")
-
-except Exception as e:
-    print(f"Fatal error during model loading: {e}")
-    print("This could be due to a network problem or a dependency issue (like numpy).")
-    print("Please ensure you have run: !pip install -r requirements.txt")
-    sys.exit(1)
+    except Exception as e:
+        print(f"WARNING: Voice analysis is unavailable: {e}")
 
 
 #
 # --- 2. Define AI Pipeline Functions (from Resume_OCR.py) ---
 #
 
-def detect_document_text(path: str, reader: easyocr.Reader) -> str:
+def detect_document_text(path: str, reader: Optional[Any] = None) -> str:
     """Extract selectable PDF text, falling back to EasyOCR for scanned PDFs."""
-    try:
-        extracted_pages = [
-            page.extract_text() or "" for page in PdfReader(path).pages
-        ]
-        selectable_text = "\n\n--- END OF PAGE ---\n\n".join(extracted_pages).strip()
-        if selectable_text:
-            return selectable_text
-    except Exception as e:
-        print(f"Selectable PDF text extraction failed; trying OCR: {e}")
+    if PdfReader is not None:
+        try:
+            extracted_pages = [
+                page.extract_text() or "" for page in PdfReader(path).pages
+            ]
+            selectable_text = "\n\n--- END OF PAGE ---\n\n".join(extracted_pages).strip()
+            if selectable_text:
+                return selectable_text
+        except Exception as e:
+            print(f"Selectable PDF text extraction failed; trying OCR: {e}")
+
+    active_reader = reader or get_ocr_reader()
+    if convert_from_path is None or active_reader is None:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "This PDF contains no selectable text and OCR requires Poppler and EasyOCR. "
+                "Install Poppler with 'brew install poppler' and ensure EasyOCR is installed, then restart backend.py."
+            )
+        )
 
     try:
         images = convert_from_path(path)
@@ -148,7 +159,7 @@ def detect_document_text(path: str, reader: easyocr.Reader) -> str:
     full_text = []
     for i, img in enumerate(images):
         img_np = np.array(img)
-        result = reader.readtext(img_np, detail=0, paragraph=True)
+        result = active_reader.readtext(img_np, detail=0, paragraph=True)
         full_text.append("\n".join(result))
 
     return "\n\n--- END OF PAGE ---\n\n".join(full_text)
@@ -354,7 +365,14 @@ async def analyze_resume(file: UploadFile = File(...)):
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Invalid file type. Please upload a PDF.")
 
-    temp_pdf_path = f"temp_{file.filename}"
+    if recommender is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Job recommender is temporarily unavailable."
+        )
+
+    safe_name = os.path.basename(file.filename or "resume.pdf")
+    temp_pdf_path = f"temp_{int(time.time()*1000)}_{safe_name}"
     try:
         with open(temp_pdf_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -416,11 +434,19 @@ async def analyze_audio(file: UploadFile = File(...)):
         )
 
     # Check if the file is an audio file
-    if not file.content_type.startswith("audio/"):
+    allowed_extensions = ('.wav', '.webm', '.mp3', '.m4a', '.ogg', '.flac')
+    is_audio_content = bool(file.content_type and (
+        file.content_type.startswith("audio/") or
+        file.content_type in ("video/webm", "application/octet-stream")
+    ))
+    has_audio_ext = any(file.filename.lower().endswith(ext) for ext in allowed_extensions) if file.filename else False
+
+    if not (is_audio_content or has_audio_ext):
         raise HTTPException(status_code=400, detail="Invalid file type. Please upload an audio file (e.g., .wav, .webm, .mp4).")
 
     # Save the audio to a temporary file
-    temp_audio_path = f"temp_{file.filename}"
+    safe_name = os.path.basename(file.filename or "response.webm")
+    temp_audio_path = f"temp_{int(time.time()*1000)}_{safe_name}"
     try:
         with open(temp_audio_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -432,13 +458,6 @@ async def analyze_audio(file: UploadFile = File(...)):
     try:
         # --- Run the Full AI Pipeline ---
         print(f"Processing: {temp_audio_path}")
-
-        # The analyzer class handles everything:
-        # 1. Cleaning the audio (if needed)
-        # 2. Transcribing (Whisper)
-        # 3. Text Analysis (Gemini)
-        # 4. Prosody Analysis (Parselmouth)
-        # 5. Final Report
         report = analyzer.get_final_analysis(temp_audio_path)
 
         if "error" in report:
@@ -450,15 +469,18 @@ async def analyze_audio(file: UploadFile = File(...)):
             "report": report
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
-        # Catch any other errors
         print(f"An error occurred during analysis: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
     finally:
-        # Clean up the temporary file
         if os.path.exists(temp_audio_path):
-            os.remove(temp_audio_path)
+            try:
+                os.remove(temp_audio_path)
+            except Exception as cleanup_err:
+                print(f"Warning: Could not remove temporary audio file: {cleanup_err}")
 
 #
 # --- 4. Colab/Ngrok Specific Launch Code ---

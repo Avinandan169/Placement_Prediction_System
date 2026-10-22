@@ -84,7 +84,7 @@ class CommunicationAnalyzer:
             return model
         except Exception as e:
             print(f"Error initializing Gemini model: {e}")
-            sys.exit(1)
+            raise RuntimeError(f"Gemini model initialization failed: {e}")
 
     def _clean_audio(self, audio_path):
         """
@@ -96,7 +96,7 @@ class CommunicationAnalyzer:
             # 1. Load audio using Whisper's robust FFmpeg-backed loader
             # This handles .webm, .mp4, .mp3, etc.
             audio = whisper.load_audio(audio_path)
-            
+
             # 2. Get the base name
             base_name = os.path.splitext(os.path.basename(audio_path))[0]
             clean_wav_path = f"clean_{base_name}.wav"
@@ -104,25 +104,35 @@ class CommunicationAnalyzer:
             # 3. Resample to 16kHz (standard for STT) and save as 16-bit PCM WAV
             # whisper.audio.SAMPLE_RATE is 16000
             sf.write(clean_wav_path, audio, whisper.audio.SAMPLE_RATE, subtype='PCM_16')
-            
+
             print(f"Clean audio saved to {clean_wav_path}")
             return clean_wav_path
-            
+
         except Exception as e:
-            print(f"Error during audio cleaning: {e}")
-            print("This may be due to a corrupted file or missing 'ffmpeg'.")
-            print("In Colab, 'ffmpeg' is usually pre-installed.")
-            return None
+            print(f"Error during audio cleaning with ffmpeg/whisper: {e}")
+            try:
+                # Direct soundfile fallback for standard WAV files
+                audio_data, sr = sf.read(audio_path)
+                if len(audio_data.shape) > 1:
+                    audio_data = audio_data.mean(axis=1)
+                base_name = os.path.splitext(os.path.basename(audio_path))[0]
+                clean_wav_path = f"clean_{base_name}.wav"
+                sf.write(clean_wav_path, audio_data, sr, subtype='PCM_16')
+                print(f"Clean audio saved via soundfile fallback to {clean_wav_path}")
+                return clean_wav_path
+            except Exception as sf_err:
+                print(f"Soundfile fallback also failed: {sf_err}")
+                return None
 
 
     def transcribe_audio(self, audio_path):
         """
         Transcribes the audio file to text using Whisper.
-        
+
         --- FIX ---
         This function no longer uses soundfile.read() and only returns
         the transcribed text.
-        
+
         Returns:
             str: The transcribed text.
         """
@@ -185,20 +195,20 @@ class CommunicationAnalyzer:
         try:
             # Load sound file
             snd = parselmouth.Sound(audio_path)
-            
+
             # 1. Articulation (Speaking Rate)
             duration = snd.get_total_duration()
             speaking_rate_wpm = 0
             if duration > 0 and word_count > 0:
                 speaking_rate_wpm = (word_count / duration) * 60  # Words per minute
-            
+
             # 2. Nervousness (Jitter and Pitch Variation)
             pitch = snd.to_pitch()
-            
+
             # Get jitter (local, absolute)
             # This is a common point of failure if speech is not detected.
             jitter = parselmouth.praat.call(pitch, "Get jitter (local)", 0.0, 0.0, 0.0001, 0.02, 1.3) * 100  # As a percentage
-            
+
             # Get standard deviation of pitch (a measure of monotone vs. varied speech)
             pitch_std_dev = parselmouth.praat.call(pitch, "Get standard deviation", 0, 0, "Hertz")
 
@@ -226,65 +236,59 @@ class CommunicationAnalyzer:
         """
         print("-" * 50)
         print(f"Starting full analysis for: {audio_path}")
-        
+
         # --- Step 1: Clean audio for Parselmouth ---
-        # We need a clean, readable .wav file for prosody analysis.
         clean_wav_path = self._clean_audio(audio_path)
         if clean_wav_path is None:
-            return {"error": "Failed to clean or convert audio file."}
+            return {"error": "Failed to clean or convert audio file. Ensure ffmpeg is installed or upload a valid audio format."}
 
-        # --- Step 2: Transcribe ---
-        # --- FIX: We now use the clean .wav file for transcription ---
-        # This avoids the "Format not recognised" error with .webm files.
-        transcribed_text = self.transcribe_audio(clean_wav_path)
-        if transcribed_text is None:
-            # If transcription fails, we can't proceed.
-            if os.path.exists(clean_wav_path):
-                os.remove(clean_wav_path)
-            return {"error": "Failed to transcribe audio."}
-        
-        word_count = len(transcribed_text.split())
+        try:
+            # --- Step 2: Transcribe ---
+            transcribed_text = self.transcribe_audio(clean_wav_path)
+            if transcribed_text is None:
+                return {"error": "Failed to transcribe audio."}
 
-        # --- Step 3: Text Analysis ---
-        text_analysis = self.analyze_text(transcribed_text)
-        if text_analysis is None:
-            if os.path.exists(clean_wav_path):
-                os.remove(clean_wav_path)
-            return {"error": "Failed to analyze text with Gemini."}
+            word_count = len(transcribed_text.split())
 
-        # --- Step 4: Audio Prosody Analysis ---
-        # We use the *clean* .wav file for Parselmouth.
-        # This function returns the duration and other metrics.
-        prosody_analysis = self.analyze_prosody(clean_wav_path, word_count)
+            # --- Step 3: Text Analysis ---
+            text_analysis = self.analyze_text(transcribed_text)
+            if text_analysis is None:
+                return {"error": "Failed to analyze text with Gemini."}
 
-        # --- Step 5: Combine and Score ---
-        final_report = self._generate_final_report(
-            transcribed_text,
-            text_analysis,
-            prosody_analysis
-        )
-        
-        # --- Step 6: Clean up ---
-        if os.path.exists(clean_wav_path):
-            os.remove(clean_wav_path)
-        
-        print("Full analysis complete.")
-        print("-" * 50)
-        return final_report
-        
+            # --- Step 4: Audio Prosody Analysis ---
+            prosody_analysis = self.analyze_prosody(clean_wav_path, word_count)
+
+            # --- Step 5: Combine and Score ---
+            final_report = self._generate_final_report(
+                transcribed_text,
+                text_analysis,
+                prosody_analysis
+            )
+
+            print("Full analysis complete.")
+            print("-" * 50)
+            return final_report
+        finally:
+            # Clean up temporary clean WAV
+            if clean_wav_path and os.path.exists(clean_wav_path):
+                try:
+                    os.remove(clean_wav_path)
+                except Exception as cleanup_err:
+                    print(f"Warning: Could not remove clean wav file: {cleanup_err}")
+
     def _generate_final_report(self, text, text_analysis, prosody):
         """Helper to combine all data into a final report."""
-        
+
         # --- Scoring (Simple Example) ---
         # Scale all metrics to 0-10
-        
+
         # 1. Vocabulary Score
         vocab_score = text_analysis.get("vocabulary_rating", 0)
-        
+
         # 2. Fumbling Score (Inverse score: 0 fumbles = 10 points)
         fumble_count = text_analysis.get("filler_words_count", 0)
         fumble_score = max(0, 10 - (fumble_count * 2)) # 5 fumbles = 0 points
-        
+
         # 3. Articulation Score (Ideal rate is ~140-160 wpm)
         rate = prosody.get("speaking_rate_wpm", 0)
         articulation_score = 0
@@ -295,7 +299,7 @@ class CommunicationAnalyzer:
                 articulation_score = max(0, 10 - (rate - 170) / 10)
             else: # Too slow
                 articulation_score = max(0, 10 - (130 - rate) / 10)
-            
+
         # 4. Nervousness Score (Ideal jitter is < 1%)
         jitter = prosody.get("jitter_percent", 0)
         nervousness_score = 0
@@ -303,7 +307,7 @@ class CommunicationAnalyzer:
             nervousness_score = max(0, 10 - (jitter * 10)) # 1% jitter = 0 points
         elif text and len(text.split()) > 10: # Spoke, but jitter was 0 (good!)
              nervousness_score = 10
-        
+
         # --- Final Weighted Score ---
         # We'll weight vocabulary and fumbling higher
         final_score = (
@@ -312,7 +316,7 @@ class CommunicationAnalyzer:
             (articulation_score * 0.2) +
             (nervousness_score * 0.2)
         )
-        
+
         return {
             "final_communication_score": f"{final_score:.1f} / 10.0",
             "transcribed_text": text,
