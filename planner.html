@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A* Skill Development Planner - Placement Prediction System</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="app-sidebar" id="sidebar-container"></aside>
+
+        <div class="app-main">
+            <header class="app-topbar" id="topbar-container"></header>
+
+            <main class="app-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">A* Heuristic Skill Development Planner</h1>
+                        <p class="page-description">Heuristic search on a skill dependency graph to generate optimal personalized learning paths (CSE3121).</p>
+                    </div>
+                </div>
+
+                <!-- Academic Theory Alert -->
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-route" style="font-size: 1.25rem;"></i>
+                    <div>
+                        <strong>CSE3121 Artificial Intelligence Search:</strong> Implements <strong>A* Graph Search</strong> 
+                        evaluated by \(f(n) = g(n) + h(n)\), where \(g(n)\) represents cumulative prerequisite study hours and 
+                        \(h(n)\) represents the <strong>admissible heuristic</strong> summing remaining minimum prerequisite hours 
+                        to achieve the target career competencies. Because \(h(n) \le h^*(n)\), the search guarantees discovering the optimal learning path.
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <!-- Planner Config Form -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-bullseye text-indigo-500"></i> Career Goal & Current Competencies
+                            </div>
+                            <span class="badge badge-primary">Heuristic Target</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label" for="select-target-role">Select Target Placement Role <span class="required">*</span></label>
+                                <select class="form-select" id="select-target-role">
+                                    <option value="Data Scientist" selected>Data Scientist (Predictive Analytics & ML)</option>
+                                    <option value="Machine Learning Engineer">Machine Learning Engineer (Deep Learning & MLOps)</option>
+                                    <option value="Full-Stack Web Developer">Full-Stack Web Developer (React & Backend APIs)</option>
+                                    <option value="DevOps & Cloud Engineer">DevOps & Cloud Engineer (Docker, K8s & Cloud)</option>
+                                    <option value="Data Analyst">Data Analyst (SQL, Tableau & Business Intelligence)</option>
+                                    <option value="Cybersecurity Analyst">Cybersecurity Analyst (Network Security & Auditing)</option>
+                                </select>
+                                <div class="form-hint" id="role-description-hint">Focuses on statistical modeling, machine learning, and extracting insights from enterprise data.</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Select Skills You Already Possess (Prerequisites Fulfilled):</label>
+                                <div id="current-skills-checkboxes" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; max-height: 220px; overflow-y: auto; border: 1px solid var(--border-subtle); padding: 0.75rem; border-radius: var(--radius-sm); background: var(--slate-50);">
+                                    <!-- Populated dynamically -->
+                                    <div style="font-size: 0.8rem; color: var(--text-muted);">Loading skill catalog...</div>
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-primary" id="btn-generate-plan" style="width: 100%;">
+                                <i class="fa-solid fa-route"></i> Generate Optimal A* Learning Roadmap
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search Efficiency & Summary Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-chart-line text-indigo-500"></i> A* Search Execution Metrics
+                            </div>
+                            <span class="badge badge-success">Admissible Heuristic</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="stats-grid" style="margin-bottom: 1.25rem;">
+                                <div class="stat-card" style="padding: 1rem; background: var(--indigo-50); border-color: var(--indigo-100);">
+                                    <div class="stat-label">Total Effort</div>
+                                    <div class="stat-value" id="plan-total-hours" style="color: var(--primary);">200 hrs</div>
+                                    <div class="stat-footer">Cumulative path cost \(g(n)\)</div>
+                                </div>
+                                <div class="stat-card" style="padding: 1rem;">
+                                    <div class="stat-label">Milestones</div>
+                                    <div class="stat-value" id="plan-total-steps">7 Steps</div>
+                                    <div class="stat-footer">Dependency ordered</div>
+                                </div>
+                                <div class="stat-card" style="padding: 1rem;">
+                                    <div class="stat-label">Nodes Expanded</div>
+                                    <div class="stat-value" id="plan-nodes-expanded">8</div>
+                                    <div class="stat-footer">Priority queue states</div>
+                                </div>
+                                <div class="stat-card" style="padding: 1rem;">
+                                    <div class="stat-label">Optimality</div>
+                                    <div class="stat-value" style="color: var(--success);">Guaranteed</div>
+                                    <div class="stat-footer">\(h(n) \le h^*(n)\) holds</div>
+                                </div>
+                            </div>
+
+                            <div style="background-color: var(--slate-50); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.85rem; font-size: 0.82rem; color: var(--text-secondary);" id="plan-summary-text">
+                                Select your career goal and click "Generate Optimal A* Learning Roadmap".
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Generated Roadmap Timeline -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-list-ol text-indigo-500"></i> Recommended Optimal Skill Progression Sequence
+                        </div>
+                        <span class="badge badge-neutral" id="badge-roadmap-status">Roadmap Active</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="roadmap-container">
+                            <div class="roadmap-timeline" id="timeline-list">
+                                <!-- Steps populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="nav.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const baseUrl = (typeof API_CONFIG !== 'undefined' && API_CONFIG.MAIN_API_BASE_URL) || 'http://127.0.0.1:8000';
+            const roleSelect = document.getElementById('select-target-role');
+            const skillsBox = document.getElementById('current-skills-checkboxes');
+            const generateBtn = document.getElementById('btn-generate-plan');
+            const timelineList = document.getElementById('timeline-list');
+            const roleHint = document.getElementById('role-description-hint');
+
+            let allSkills = [];
+            let allRoles = [];
+
+            // 1. Fetch available roles & skills
+            try {
+                const [rolesRes, skillsRes] = await Promise.all([
+                    fetch(`${baseUrl}/api/astar/roles`),
+                    fetch(`${baseUrl}/api/astar/all-skills`)
+                ]);
+
+                if (rolesRes.ok) {
+                    const rData = await rolesRes.json();
+                    allRoles = rData.roles || [];
+                }
+
+                if (skillsRes.ok) {
+                    const sData = await skillsRes.json();
+                    allSkills = sData.skills || [];
+
+                    skillsBox.innerHTML = '';
+                    allSkills.forEach(s => {
+                        skillsBox.innerHTML += `
+                            <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; cursor: pointer;">
+                                <input type="checkbox" value="${s.id}" class="skill-chk">
+                                <span>${s.name}</span>
+                            </label>
+                        `;
+                    });
+                }
+            } catch (err) {
+                console.error("Init skills error:", err);
+            }
+
+            roleSelect.addEventListener('change', () => {
+                const sel = allRoles.find(r => r.title === roleSelect.value);
+                if (sel) roleHint.textContent = sel.description;
+            });
+
+            async function runAStar() {
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Searching Graph via A*...';
+
+                // Collect checked skills
+                const currentSkills = [];
+                document.querySelectorAll('.skill-chk:checked').forEach(c => currentSkills.push(c.value));
+
+                const payload = {
+                    target_role: roleSelect.value,
+                    current_skills: currentSkills
+                };
+
+                try {
+                    const res = await fetch(`${baseUrl}/api/astar/plan`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+
+                    if (!res.ok) throw new Error(data.detail || "Planning failed");
+
+                    // Metrics
+                    document.getElementById('plan-total-hours').textContent = `${data.total_effort_hours} hrs`;
+                    document.getElementById('plan-total-steps').textContent = `${data.total_steps || 0} Steps`;
+                    document.getElementById('plan-nodes-expanded').textContent = data.search_metrics?.nodes_expanded || 0;
+                    document.getElementById('plan-summary-text').textContent = data.summary;
+
+                    // Timeline
+                    timelineList.innerHTML = '';
+                    if (data.already_qualified) {
+                        timelineList.innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <div><strong>Already Qualified:</strong> You already have all necessary skills for ${data.target_role}!</div>
+                            </div>
+                        `;
+                    } else if (data.steps && data.steps.length) {
+                        data.steps.forEach(st => {
+                            const prereqText = st.prerequisites && st.prerequisites.length
+                                ? `Prerequisites: <strong>${st.prerequisites.join(', ')}</strong>`
+                                : `<em>No Prerequisites Required</em>`;
+                            
+                            const coreBadge = st.is_core_target
+                                ? '<span class="badge badge-primary">Target Competency</span>'
+                                : '<span class="badge badge-neutral">Prerequisite Foundation</span>';
+
+                            timelineList.innerHTML += `
+                                <div class="timeline-step">
+                                    <div class="step-marker" id="marker-${st.step_number}">${st.step_number}</div>
+                                    <div class="step-card">
+                                        <div class="step-header">
+                                            <div>
+                                                <div class="step-title">${st.name}</div>
+                                                <div class="step-meta">${st.category} &bull; ${prereqText}</div>
+                                            </div>
+                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <span class="badge badge-neutral">${st.effort_hours} Hours</span>
+                                                ${coreBadge}
+                                            </div>
+                                        </div>
+                                        <p style="font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 0.75rem;">
+                                            ${st.description}
+                                        </p>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); border-top: 1px solid var(--border-subtle); padding-top: 0.5rem;">
+                                            <span>Cumulative Investment: <strong>${st.cumulative_hours} hrs</strong></span>
+                                            <label style="cursor: pointer; display: flex; align-items: center; gap: 0.35rem; color: var(--primary);">
+                                                <input type="checkbox" onchange="markCompleted(this, '${st.skill_id}', ${st.step_number})">
+                                                <span>Mark Completed & Recalculate</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                } catch (err) {
+                    alert("A* Planner error: " + err.message);
+                } finally {
+                    generateBtn.disabled = false;
+                    generateBtn.innerHTML = '<i class="fa-solid fa-route"></i> Generate Optimal A* Learning Roadmap';
+                }
+            }
+
+            // Expose globally for interactive re-planning
+            window.markCompleted = (cb, skillId, stepNum) => {
+                const marker = document.getElementById(`marker-${stepNum}`);
+                if (cb.checked) {
+                    if (marker) marker.classList.add('completed');
+                    // Check the corresponding checkbox in the form
+                    const skillChk = document.querySelector(`.skill-chk[value="${skillId}"]`);
+                    if (skillChk) skillChk.checked = true;
+                    // Recalculate remaining trajectory
+                    runAStar();
+                }
+            };
+
+            generateBtn.addEventListener('click', runAStar);
+            runAStar();
+        });
+    </script>
+</body>
+</html>

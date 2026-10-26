@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exploratory Data Analysis - Placement Prediction System</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="app-sidebar" id="sidebar-container"></aside>
+
+        <div class="app-main">
+            <header class="app-topbar" id="topbar-container"></header>
+
+            <main class="app-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Exploratory Data Analysis (EDA)</h1>
+                        <p class="page-description">Statistical profiling, feature distributions, outlier analysis, and correlation matrices for CSE3141.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-outline btn-sm" id="btn-refresh-eda">
+                            <i class="fa-solid fa-arrows-rotate"></i> Recompute Statistics
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Academic Guidance Alert -->
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-chart-line" style="font-size: 1.25rem;"></i>
+                    <div>
+                        <strong>CSE3141 Predictive Analytics Requirement:</strong> This module presents distribution analysis, 
+                        inter-feature Pearson correlations, class balance inspection, and outlier bounds computed via the 
+                        Interquartile Range (IQR) method. <em>Correlations represent empirical statistical associations, not causal proofs.</em>
+                    </div>
+                </div>
+
+                <!-- EDA Summary Metric Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Sample Size</div>
+                        <div class="stat-value" id="eda-rows">10,000</div>
+                        <div class="stat-footer">Observations recorded</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Input Attributes</div>
+                        <div class="stat-value">10</div>
+                        <div class="stat-footer">8 Numeric, 2 Categorical</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Missing Records</div>
+                        <div class="stat-value" style="color: var(--success);" id="eda-nulls">0 (0.0%)</div>
+                        <div class="stat-footer">Complete feature matrix</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Duplicate Rows</div>
+                        <div class="stat-value" style="color: var(--warning);" id="eda-dups">72 (0.72%)</div>
+                        <div class="stat-footer">Tracked in data audit</div>
+                    </div>
+                </div>
+
+                <!-- Visual Charts Grid -->
+                <div class="grid-2">
+                    <!-- Placement Outcome Distribution -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-chart-pie text-indigo-500"></i> Target Class Distribution
+                            </div>
+                            <span class="badge badge-primary">PlacementStatus</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="height: 260px; position: relative;">
+                                <canvas id="chart-target-dist"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CGPA Distribution -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-chart-simple text-indigo-500"></i> CGPA Frequency Distribution
+                            </div>
+                            <span class="badge badge-neutral">10 Equal Bins</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="height: 260px; position: relative;">
+                                <canvas id="chart-cgpa-dist"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Secondary Charts Grid -->
+                <div class="grid-2">
+                    <!-- Aptitude Test Scores -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-chart-column text-indigo-500"></i> Aptitude Test Score Distribution
+                            </div>
+                            <span class="badge badge-neutral">Range: 60 - 90</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="height: 260px; position: relative;">
+                                <canvas id="chart-aptitude-dist"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Soft Skills Rating -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-comments text-indigo-500"></i> Soft Skills Rating Distribution
+                            </div>
+                            <span class="badge badge-neutral">Scale: 1.0 - 5.0</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="height: 260px; position: relative;">
+                                <canvas id="chart-softskills-dist"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Correlation Heatmap Matrix -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-table-cells text-indigo-500"></i> Pearson Correlation Heatmap Matrix
+                        </div>
+                        <span class="badge badge-neutral">Numeric Variables (r)</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="data-table" id="corr-matrix-table" style="text-align: center;">
+                                <thead id="corr-thead"></thead>
+                                <tbody id="corr-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Descriptive Statistics Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-calculator text-indigo-500"></i> Descriptive Statistics Table
+                        </div>
+                        <span class="badge badge-neutral">Parametric & Non-Parametric</span>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive">
+                            <table class="data-table" id="desc-stats-table">
+                                <thead>
+                                    <tr>
+                                        <th>Attribute</th>
+                                        <th>Mean</th>
+                                        <th>Std Dev</th>
+                                        <th>Min</th>
+                                        <th>25% (Q1)</th>
+                                        <th>Median</th>
+                                        <th>75% (Q3)</th>
+                                        <th>Max</th>
+                                        <th>Skewness</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="desc-stats-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Outlier Inspection Panel -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-arrows-split-up-and-left text-indigo-500"></i> Outlier Analysis (Tukey's IQR Method)
+                        </div>
+                        <span class="badge badge-neutral">Bounds: Q1 - 1.5&times;IQR to Q3 + 1.5&times;IQR</span>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive">
+                            <table class="data-table" id="outliers-table">
+                                <thead>
+                                    <tr>
+                                        <th>Feature</th>
+                                        <th>IQR</th>
+                                        <th>Lower Threshold</th>
+                                        <th>Upper Threshold</th>
+                                        <th>Outlier Count</th>
+                                        <th>Outlier Ratio</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="outliers-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="nav.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const baseUrl = (typeof API_CONFIG !== 'undefined' && API_CONFIG.MAIN_API_BASE_URL) || 'http://127.0.0.1:8000';
+            let targetChart, cgpaChart, aptChart, softChart;
+
+            async function loadEDA() {
+                try {
+                    const res = await fetch(`${baseUrl}/api/eda/summary`);
+                    if (!res.ok) throw new Error("Failed to load EDA summary");
+                    const data = await res.json();
+
+                    // Summary counts
+                    document.getElementById('eda-rows').textContent = data.summary.total_rows.toLocaleString();
+                    document.getElementById('eda-dups').textContent = `${data.summary.duplicate_rows} (${(data.summary.duplicate_rows / data.summary.total_rows * 100).toFixed(2)}%)`;
+
+                    // 1. Target Chart (Doughnut)
+                    const targetDist = data.target_distribution || {};
+                    const targetLabels = Object.keys(targetDist);
+                    const targetCounts = targetLabels.map(l => targetDist[l].count);
+                    
+                    if (targetChart) targetChart.destroy();
+                    targetChart = new Chart(document.getElementById('chart-target-dist'), {
+                        type: 'doughnut',
+                        data: {
+                            labels: targetLabels,
+                            datasets: [{
+                                data: targetCounts,
+                                backgroundColor: ['#94a3b8', '#10b981'],
+                                borderWidth: 2,
+                                borderColor: '#ffffff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom' }
+                            }
+                        }
+                    });
+
+                    // 2. CGPA Histogram (Bar)
+                    const cgpaHisto = data.histograms.CGPA;
+                    if (cgpaHisto) {
+                        if (cgpaChart) cgpaChart.destroy();
+                        cgpaChart = new Chart(document.getElementById('chart-cgpa-dist'), {
+                            type: 'bar',
+                            data: {
+                                labels: cgpaHisto.labels,
+                                datasets: [{
+                                    label: 'Frequency',
+                                    data: cgpaHisto.counts,
+                                    backgroundColor: '#4f46e5',
+                                    borderRadius: 4
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: { title: { display: true, text: 'CGPA Range' } },
+                                    y: { title: { display: true, text: 'Student Count' } }
+                                }
+                            }
+                        });
+                    }
+
+                    // 3. Aptitude Test Score Histogram
+                    const aptHisto = data.histograms.AptitudeTestScore;
+                    if (aptHisto) {
+                        if (aptChart) aptChart.destroy();
+                        aptChart = new Chart(document.getElementById('chart-aptitude-dist'), {
+                            type: 'bar',
+                            data: {
+                                labels: aptHisto.labels,
+                                datasets: [{
+                                    label: 'Frequency',
+                                    data: aptHisto.counts,
+                                    backgroundColor: '#0ea5e9',
+                                    borderRadius: 4
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: { title: { display: true, text: 'Score Range' } },
+                                    y: { title: { display: true, text: 'Student Count' } }
+                                }
+                            }
+                        });
+                    }
+
+                    // 4. Soft Skills Histogram
+                    const softHisto = data.histograms.SoftSkillsRating;
+                    if (softHisto) {
+                        if (softChart) softChart.destroy();
+                        softChart = new Chart(document.getElementById('chart-softskills-dist'), {
+                            type: 'bar',
+                            data: {
+                                labels: softHisto.labels,
+                                datasets: [{
+                                    label: 'Frequency',
+                                    data: softHisto.counts,
+                                    backgroundColor: '#10b981',
+                                    borderRadius: 4
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: { title: { display: true, text: 'Rating Range' } },
+                                    y: { title: { display: true, text: 'Student Count' } }
+                                }
+                            }
+                        });
+                    }
+
+                    // 5. Correlation Heatmap Table
+                    const corr = data.correlation_matrix;
+                    if (corr && corr.columns) {
+                        const thead = document.getElementById('corr-thead');
+                        const tbody = document.getElementById('corr-tbody');
+                        
+                        let thHtml = '<tr><th>Attribute</th>';
+                        corr.columns.forEach(col => {
+                            thHtml += `<th title="${col}">${col.substring(0, 8)}...</th>`;
+                        });
+                        thHtml += '</tr>';
+                        thead.innerHTML = thHtml;
+
+                        let trHtml = '';
+                        corr.columns.forEach((rowCol, rIdx) => {
+                            trHtml += `<tr><td style="font-weight: 600; text-align: left;">${rowCol}</td>`;
+                            corr.columns.forEach((cCol, cIdx) => {
+                                const val = corr.values[rIdx][cIdx];
+                                // Color scale: 1.0 -> deep indigo, 0.0 -> white
+                                const intensity = Math.abs(val);
+                                const bgColor = val >= 0 
+                                    ? `rgba(79, 70, 229, ${Math.max(0.08, intensity)})`
+                                    : `rgba(244, 63, 94, ${Math.max(0.08, intensity)})`;
+                                const textColor = intensity > 0.5 ? '#ffffff' : 'var(--text-primary)';
+                                
+                                trHtml += `<td style="background-color: ${bgColor}; color: ${textColor}; font-weight: 600; font-size: 0.78rem;">${val.toFixed(2)}</td>`;
+                            });
+                            trHtml += '</tr>';
+                        });
+                        tbody.innerHTML = trHtml;
+                    }
+
+                    // 6. Descriptive Statistics Table
+                    const descTbody = document.getElementById('desc-stats-tbody');
+                    let descHtml = '';
+                    Object.entries(data.descriptive_statistics || {}).forEach(([feat, stats]) => {
+                        descHtml += `
+                            <tr>
+                                <td><strong>${feat}</strong></td>
+                                <td>${stats.mean}</td>
+                                <td>${stats.std}</td>
+                                <td>${stats.min}</td>
+                                <td>${stats.q25}</td>
+                                <td><span class="badge badge-primary">${stats.median}</span></td>
+                                <td>${stats.q75}</td>
+                                <td>${stats.max}</td>
+                                <td>${stats.skewness}</td>
+                            </tr>
+                        `;
+                    });
+                    descTbody.innerHTML = descHtml;
+
+                    // 7. Outliers Table
+                    const outTbody = document.getElementById('outliers-tbody');
+                    let outHtml = '';
+                    Object.entries(data.outliers_summary || {}).forEach(([feat, out]) => {
+                        const hasOutliers = out.outlier_count > 0;
+                        const statusBadge = hasOutliers
+                            ? `<span class="badge badge-warning">${out.outlier_count} Outliers</span>`
+                            : `<span class="badge badge-success">Clean Range</span>`;
+                        outHtml += `
+                            <tr>
+                                <td><strong>${feat}</strong></td>
+                                <td>${out.iqr}</td>
+                                <td>${out.lower_bound}</td>
+                                <td>${out.upper_bound}</td>
+                                <td><strong>${out.outlier_count}</strong></td>
+                                <td>${out.outlier_percentage}%</td>
+                                <td>${statusBadge}</td>
+                            </tr>
+                        `;
+                    });
+                    outTbody.innerHTML = outHtml;
+
+                } catch (err) {
+                    console.error("EDA error:", err);
+                }
+            }
+
+            document.getElementById('btn-refresh-eda').addEventListener('click', loadEDA);
+            loadEDA();
+        });
+    </script>
+</body>
+</html>

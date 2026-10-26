@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Training & Evaluation - Placement Prediction System</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="app-sidebar" id="sidebar-container"></aside>
+
+        <div class="app-main">
+            <header class="app-topbar" id="topbar-container"></header>
+
+            <main class="app-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Model Training, Tuning & Evaluation</h1>
+                        <p class="page-description">Benchmark 5 candidate classification pipelines using Stratified 5-Fold CV and GridSearchCV for CSE3141.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-primary" id="btn-trigger-training">
+                            <i class="fa-solid fa-play"></i> Train & Compare Models
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Academic Pipeline Alert -->
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-graduation-cap" style="font-size: 1.25rem;"></i>
+                    <div>
+                        <strong>CSE3141 Predictive Analytics Rigor:</strong> Models are trained on an 80/20 stratified split. 
+                        Preprocessing transformations (median imputation, standard scaling, and one-hot encoding) are fitted 
+                        <strong>strictly on training folds inside a scikit-learn Pipeline to eliminate data leakage</strong>. 
+                        Hyperparameter tuning is conducted via <code>GridSearchCV</code>, and metrics are measured on the unseen held-out test set.
+                    </div>
+                </div>
+
+                <!-- Training Progress Banner (Dynamic) -->
+                <div id="training-progress-banner" class="alert alert-warning" style="display: none;">
+                    <i class="fa-solid fa-spinner fa-spin" style="font-size: 1.25rem;"></i>
+                    <div style="flex: 1;">
+                        <div style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 0.35rem;">
+                            <span id="training-progress-msg">Training models across 5 cross-validation folds...</span>
+                            <span id="training-progress-pct">45%</span>
+                        </div>
+                        <div class="metric-bar-container" style="height: 10px; background: rgba(0,0,0,0.1);">
+                            <div class="metric-bar-fill" id="training-progress-fill" style="width: 45%; background-color: var(--warning);"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected Top Model Hero Card -->
+                <div class="card" id="selected-model-hero" style="border-left: 4px solid var(--primary);">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-trophy text-amber-500"></i> Recommended Production Model: <span id="hero-model-name" class="text-primary" style="margin-left: 6px;">Logistic Regression</span>
+                        </div>
+                        <span class="badge badge-success" id="hero-model-badge">Active Model Artifact</span>
+                    </div>
+                    <div class="card-body">
+                        <p id="hero-selection-reason" style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+                            Selected 'Logistic Regression' based on the highest held-out test F1-score (0.7667) and 5-fold cross-validation performance.
+                        </p>
+                        <div class="stats-grid" style="margin-bottom: 0;">
+                            <div class="stat-card" style="padding: 1rem; border-color: var(--indigo-100); background: var(--indigo-50);">
+                                <div class="stat-label">Test F1-Score</div>
+                                <div class="stat-value" id="hero-f1" style="color: var(--primary);">0.7667</div>
+                                <div class="stat-footer">Balanced metric</div>
+                            </div>
+                            <div class="stat-card" style="padding: 1rem;">
+                                <div class="stat-label">Test Accuracy</div>
+                                <div class="stat-value" id="hero-acc">80.65%</div>
+                                <div class="stat-footer">2,000 test cases</div>
+                            </div>
+                            <div class="stat-card" style="padding: 1rem;">
+                                <div class="stat-label">ROC-AUC Score</div>
+                                <div class="stat-value" id="hero-auc">0.8891</div>
+                                <div class="stat-footer">Separation capacity</div>
+                            </div>
+                            <div class="stat-card" style="padding: 1rem;">
+                                <div class="stat-label">5-Fold CV Accuracy</div>
+                                <div class="stat-value" id="hero-cv">79.75%</div>
+                                <div class="stat-footer">&plusmn; 0.009 standard dev</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Model Comparison Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-table text-indigo-500"></i> Candidate Model Evaluation Comparison Table
+                        </div>
+                        <span class="badge badge-neutral">Evaluated on 20% Held-Out Test Split</span>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive">
+                            <table class="data-table" id="comparison-table">
+                                <thead>
+                                    <tr>
+                                        <th>Model Algorithm</th>
+                                        <th>Accuracy</th>
+                                        <th>Precision</th>
+                                        <th>Recall</th>
+                                        <th>F1-Score</th>
+                                        <th>ROC-AUC</th>
+                                        <th>5-Fold CV Mean</th>
+                                        <th>Training Time</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="comparison-tbody">
+                                    <tr>
+                                        <td colspan="9" style="text-align: center; padding: 2rem;">Loading model evaluation metrics...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visual Metrics Chart & Confusion Matrix Grid -->
+                <div class="grid-2">
+                    <!-- Metrics Bar Chart -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-chart-column text-indigo-500"></i> Model Performance Comparison
+                            </div>
+                            <span class="badge badge-neutral">Accuracy vs F1 vs ROC-AUC</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="height: 320px; position: relative;">
+                                <canvas id="chart-models-comparison"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Confusion Matrix Visualizer -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-border-all text-indigo-500"></i> Test Confusion Matrix
+                            </div>
+                            <select class="form-select" id="cm-model-select" style="width: auto; padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                                <option value="Logistic Regression">Logistic Regression (Selected)</option>
+                                <option value="Random Forest">Random Forest</option>
+                                <option value="Gradient Boosting">Gradient Boosting</option>
+                                <option value="Decision Tree">Decision Tree</option>
+                                <option value="Dummy Baseline">Dummy Baseline</option>
+                            </select>
+                        </div>
+                        <div class="card-body">
+                            <div class="confusion-matrix-grid">
+                                <div></div>
+                                <div style="font-weight: 700; font-size: 0.8rem; color: var(--text-secondary);">Predicted NotPlaced (0)</div>
+                                <div style="font-weight: 700; font-size: 0.8rem; color: var(--text-secondary);">Predicted Placed (1)</div>
+
+                                <div style="font-weight: 700; font-size: 0.8rem; color: var(--text-secondary); writing-mode: vertical-rl; transform: rotate(180deg); margin: auto;">Actual NotPlaced (0)</div>
+                                <div class="cm-cell cm-tn">
+                                    <div style="font-size: 0.75rem;">True Negative (TN)</div>
+                                    <div style="font-size: 1.5rem;" id="cm-val-tn">978</div>
+                                </div>
+                                <div class="cm-cell cm-fp">
+                                    <div style="font-size: 0.75rem;">False Positive (FP)</div>
+                                    <div style="font-size: 1.5rem;" id="cm-val-fp">183</div>
+                                </div>
+
+                                <div style="font-weight: 700; font-size: 0.8rem; color: var(--text-secondary); writing-mode: vertical-rl; transform: rotate(180deg); margin: auto;">Actual Placed (1)</div>
+                                <div class="cm-cell cm-fn">
+                                    <div style="font-size: 0.75rem;">False Negative (FN)</div>
+                                    <div style="font-size: 1.5rem;" id="cm-val-fn">204</div>
+                                </div>
+                                <div class="cm-cell cm-tp">
+                                    <div style="font-size: 0.75rem;">True Positive (TP)</div>
+                                    <div style="font-size: 1.5rem;" id="cm-val-tp">635</div>
+                                </div>
+                            </div>
+                            <div style="font-size: 0.78rem; text-align: center; color: var(--text-muted); margin-top: 0.5rem;">
+                                Based on 2,000 held-out student test records (1,161 actual NotPlaced, 839 actual Placed).
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="nav.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const baseUrl = (typeof API_CONFIG !== 'undefined' && API_CONFIG.MAIN_API_BASE_URL) || 'http://127.0.0.1:8000';
+            const triggerBtn = document.getElementById('btn-trigger-training');
+            const progressBanner = document.getElementById('training-progress-banner');
+            const progressMsg = document.getElementById('training-progress-msg');
+            const progressPct = document.getElementById('training-progress-pct');
+            const progressFill = document.getElementById('training-progress-fill');
+            const cmSelect = document.getElementById('cm-model-select');
+            
+            let modelsData = null;
+            let compChart = null;
+            let pollInterval = null;
+
+            async function loadModelResults() {
+                try {
+                    const res = await fetch(`${baseUrl}/api/model/comparison`);
+                    if (!res.ok) throw new Error("Failed to fetch model comparison");
+                    modelsData = await res.json();
+
+                    // Hero updates
+                    const selName = modelsData.selected_model || "Logistic Regression";
+                    document.getElementById('hero-model-name').textContent = selName;
+                    document.getElementById('hero-selection-reason').textContent = modelsData.selection_reason;
+
+                    const selModel = modelsData.comparison.find(m => m.model_name === selName) || modelsData.comparison[1];
+                    document.getElementById('hero-f1').textContent = selModel.f1_score;
+                    document.getElementById('hero-acc').textContent = (selModel.accuracy * 100).toFixed(2) + '%';
+                    document.getElementById('hero-auc').textContent = selModel.roc_auc;
+                    document.getElementById('hero-cv').textContent = (selModel.cv_accuracy_mean * 100).toFixed(2) + '%';
+
+                    // Table
+                    const tbody = document.getElementById('comparison-tbody');
+                    let tableHtml = '';
+                    modelsData.comparison.forEach(m => {
+                        const isSelected = m.model_name === selName;
+                        const rowStyle = isSelected ? 'background-color: var(--indigo-50); font-weight: 600;' : '';
+                        const statusBadge = isSelected
+                            ? '<span class="badge badge-success"><i class="fa-solid fa-check"></i> Selected</span>'
+                            : (m.model_name === 'Dummy Baseline' ? '<span class="badge badge-neutral">Baseline</span>' : '<span class="badge badge-primary">Trained</span>');
+
+                        tableHtml += `
+                            <tr style="${rowStyle}">
+                                <td>${isSelected ? '<i class="fa-solid fa-trophy text-amber-500" style="margin-right: 4px;"></i>' : ''}<strong>${m.model_name}</strong></td>
+                                <td>${(m.accuracy * 100).toFixed(2)}%</td>
+                                <td>${m.precision}</td>
+                                <td>${m.recall}</td>
+                                <td><span class="badge ${isSelected ? 'badge-success' : 'badge-neutral'}">${m.f1_score}</span></td>
+                                <td>${m.roc_auc !== null ? m.roc_auc : 'N/A'}</td>
+                                <td>${(m.cv_accuracy_mean * 100).toFixed(2)}%</td>
+                                <td>${m.training_time_seconds}s</td>
+                                <td>${statusBadge}</td>
+                            </tr>
+                        `;
+                    });
+                    tbody.innerHTML = tableHtml;
+
+                    // Chart
+                    renderChart();
+
+                    // Update CM
+                    updateConfusionMatrix(cmSelect.value);
+
+                } catch (err) {
+                    console.error("Models comparison load error:", err);
+                }
+            }
+
+            function renderChart() {
+                if (!modelsData || !modelsData.comparison) return;
+                const filtered = modelsData.comparison.filter(m => m.model_name !== 'Dummy Baseline');
+                const labels = filtered.map(m => m.model_name);
+                const accuracies = filtered.map(m => (m.accuracy * 100).toFixed(1));
+                const f1s = filtered.map(m => (m.f1_score * 100).toFixed(1));
+                const aucs = filtered.map(m => ((m.roc_auc || 0) * 100).toFixed(1));
+
+                if (compChart) compChart.destroy();
+                compChart = new Chart(document.getElementById('chart-models-comparison'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Accuracy (%)', data: accuracies, backgroundColor: '#4f46e5', borderRadius: 4 },
+                            { label: 'F1-Score (%)', data: f1s, backgroundColor: '#10b981', borderRadius: 4 },
+                            { label: 'ROC-AUC (%)', data: aucs, backgroundColor: '#f59e0b', borderRadius: 4 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } },
+                        scales: {
+                            y: { min: 60, max: 100, title: { display: true, text: 'Metric Percentage (%)' } }
+                        }
+                    }
+                });
+            }
+
+            function updateConfusionMatrix(modelName) {
+                if (!modelsData) return;
+                const m = modelsData.comparison.find(item => item.model_name === modelName) || modelsData.comparison[1];
+                if (m && m.confusion_matrix) {
+                    const cm = m.confusion_matrix;
+                    document.getElementById('cm-val-tn').textContent = cm[0][0];
+                    document.getElementById('cm-val-fp').textContent = cm[0][1];
+                    document.getElementById('cm-val-fn').textContent = cm[1][0];
+                    document.getElementById('cm-val-tp').textContent = cm[1][1];
+                }
+            }
+
+            cmSelect.addEventListener('change', (e) => {
+                updateConfusionMatrix(e.target.value);
+            });
+
+            // Trigger Training
+            triggerBtn.addEventListener('click', async () => {
+                if (!confirm("This will retrain all 5 models using 5-fold cross-validation and hyperparameter tuning. Continue?")) return;
+                
+                triggerBtn.disabled = true;
+                progressBanner.style.display = 'flex';
+                progressMsg.textContent = 'Initializing model training pipeline...';
+                progressPct.textContent = '5%';
+                progressFill.style.width = '5%';
+
+                try {
+                    // Trigger training in background
+                    const res = await fetch(`${baseUrl}/api/model/train?background=true`, { method: 'POST' });
+                    
+                    // Poll status
+                    pollInterval = setInterval(async () => {
+                        const statusRes = await fetch(`${baseUrl}/api/model/status`);
+                        if (statusRes.ok) {
+                            const st = await statusRes.json();
+                            progressMsg.textContent = st.message;
+                            progressPct.textContent = `${st.progress}%`;
+                            progressFill.style.width = `${st.progress}%`;
+
+                            if (st.state === 'completed') {
+                                clearInterval(pollInterval);
+                                progressBanner.className = 'alert alert-success';
+                                progressMsg.textContent = 'Model training completed successfully!';
+                                triggerBtn.disabled = false;
+                                setTimeout(() => progressBanner.style.display = 'none', 3000);
+                                loadModelResults();
+                            } else if (st.state === 'failed') {
+                                clearInterval(pollInterval);
+                                progressBanner.className = 'alert alert-danger';
+                                progressMsg.textContent = `Training failed: ${st.error || 'Unknown error'}`;
+                                triggerBtn.disabled = false;
+                            }
+                        }
+                    }, 1000);
+
+                } catch (err) {
+                    alert("Training request failed: " + err.message);
+                    triggerBtn.disabled = false;
+                    progressBanner.style.display = 'none';
+                }
+            });
+
+            loadModelResults();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dataset Management - Placement Prediction System</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="app-sidebar" id="sidebar-container"></aside>
+
+        <div class="app-main">
+            <header class="app-topbar" id="topbar-container"></header>
+
+            <main class="app-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Dataset Management & Provenance</h1>
+                        <p class="page-description">Ingest, validate, and audit training datasets for placement classification.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-outline btn-sm" id="btn-reset-default">
+                            <i class="fa-solid fa-rotate-left"></i> Reset to Default Krooz Benchmark
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Academic Note -->
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-circle-info" style="font-size: 1.25rem;"></i>
+                    <div>
+                        <strong>Data Provenance Notice:</strong> The active benchmark dataset is external sample data from 
+                        Hugging Face (<code>Krooz/Campus_Recruitment_CSV</code>) released under <strong>CC0-1.0 (Public Domain)</strong>. 
+                        It contains 10,000 real candidate observation records across 10 academic and behavioral features. Raw data is stored immutably in <code>data/raw/</code>.
+                    </div>
+                </div>
+
+                <!-- Provenance & Upload Grid -->
+                <div class="grid-2">
+                    <!-- Provenance Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-certificate text-indigo-500"></i> Active Dataset Provenance
+                            </div>
+                            <span class="badge badge-success" id="badge-dataset-license">CC0-1.0</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="data-table">
+                                    <tbody>
+                                        <tr>
+                                            <td style="width: 140px; font-weight: 600;">Dataset Name:</td>
+                                            <td id="ds-meta-name">Loading...</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight: 600;">Source Repository:</td>
+                                            <td><a href="https://huggingface.co/datasets/Krooz/Campus_Recruitment_CSV" target="_blank" id="ds-meta-source" style="word-break: break-all;">Hugging Face Hub</a></td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight: 600;">License:</td>
+                                            <td id="ds-meta-license">CC0-1.0 (Public Domain)</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight: 600;">Row / Col Dimensions:</td>
+                                            <td><strong id="ds-meta-dim">10,000 Rows &times; 11 Columns</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight: 600;">Target Variable:</td>
+                                            <td><code>PlacementStatus</code> (Binary: Placed / NotPlaced)</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight: 600;">SHA-256 Checksum:</td>
+                                            <td><code style="font-size: 0.75rem; word-break: break-all;" id="ds-meta-sha">Computing...</code></td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight: 600;">Ingestion Time:</td>
+                                            <td id="ds-meta-time">2026-10-26T06:53:01Z</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upload Panel -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-file-arrow-up text-indigo-500"></i> Upload Custom CSV Dataset
+                            </div>
+                            <span class="badge badge-neutral">Schema Validated</span>
+                        </div>
+                        <div class="card-body">
+                            <form id="upload-csv-form">
+                                <div style="border: 2px dashed var(--border-strong); border-radius: var(--radius-md); padding: 2rem 1.5rem; text-align: center; background: var(--slate-50); cursor: pointer; transition: var(--transition);" id="dropzone">
+                                    <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2.25rem; color: var(--primary); margin-bottom: 0.75rem;"></i>
+                                    <div style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem;">Drag and drop placement CSV file here</div>
+                                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 1rem;">Supports standard .csv format with required target <code>PlacementStatus</code></div>
+                                    <input type="file" id="csv-file-input" accept=".csv" style="display: none;">
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('csv-file-input').click()">
+                                        <i class="fa-solid fa-folder-open"></i> Browse Local File
+                                    </button>
+                                    <div id="selected-file-name" style="margin-top: 0.75rem; font-weight: 600; color: var(--primary); font-size: 0.85rem;"></div>
+                                </div>
+
+                                <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                                    <button type="submit" class="btn btn-primary" id="btn-submit-upload" disabled>
+                                        <i class="fa-solid fa-upload"></i> Upload & Validate Schema
+                                    </button>
+                                </div>
+                            </form>
+                            <div id="upload-feedback" style="margin-top: 1rem;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Quality & Audit Report -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-shield-halved text-indigo-500"></i> Automated Data Quality Audit Report
+                        </div>
+                        <span class="badge badge-success">Audit Passed</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="stats-grid">
+                            <div class="stat-card" style="padding: 1rem;">
+                                <div class="stat-label">Missing Values</div>
+                                <div class="stat-value" style="font-size: 1.4rem; color: var(--success);" id="quality-missing">0 (0.0%)</div>
+                                <div class="stat-footer">Imputation pipeline ready</div>
+                            </div>
+                            <div class="stat-card" style="padding: 1rem;">
+                                <div class="stat-label">Duplicate Rows</div>
+                                <div class="stat-value" style="font-size: 1.4rem; color: var(--warning);" id="quality-duplicates">72 (0.72%)</div>
+                                <div class="stat-footer">Detected and tracked</div>
+                            </div>
+                            <div class="stat-card" style="padding: 1rem;">
+                                <div class="stat-label">Class Balance</div>
+                                <div class="stat-value" style="font-size: 1.4rem; color: var(--primary);" id="quality-balance">58% : 42%</div>
+                                <div class="stat-footer">Stratified split active</div>
+                            </div>
+                            <div class="stat-card" style="padding: 1rem;">
+                                <div class="stat-label">Schema Compliance</div>
+                                <div class="stat-value" style="font-size: 1.4rem; color: var(--success);" id="quality-schema">100%</div>
+                                <div class="stat-footer">10 features + 1 target</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-table-list text-indigo-500"></i> Dataset Records Preview
+                        </div>
+                        <span class="badge badge-neutral" id="preview-row-count">Showing First 50 Records</span>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive" style="max-height: 480px; overflow-y: auto;">
+                            <table class="data-table" id="preview-table">
+                                <thead id="preview-thead" style="position: sticky; top: 0; z-index: 10;">
+                                    <tr>
+                                        <th>Loading schema...</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="preview-tbody">
+                                    <tr>
+                                        <td style="text-align: center; padding: 2rem;">Loading dataset records...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="nav.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const baseUrl = (typeof API_CONFIG !== 'undefined' && API_CONFIG.MAIN_API_BASE_URL) || 'http://127.0.0.1:8000';
+            const fileInput = document.getElementById('csv-file-input');
+            const dropzone = document.getElementById('dropzone');
+            const fileNameDisplay = document.getElementById('selected-file-name');
+            const submitBtn = document.getElementById('btn-submit-upload');
+            const uploadForm = document.getElementById('upload-csv-form');
+            const feedbackBox = document.getElementById('upload-feedback');
+
+            async function loadDatasetInfo() {
+                try {
+                    const res = await fetch(`${baseUrl}/api/dataset/info`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        document.getElementById('ds-meta-name').textContent = data.name;
+                        document.getElementById('ds-meta-source').textContent = data.source;
+                        document.getElementById('ds-meta-source').href = data.source;
+                        document.getElementById('ds-meta-license').textContent = data.license;
+                        document.getElementById('badge-dataset-license').textContent = data.license.split(' ')[0];
+                        document.getElementById('ds-meta-dim').textContent = `${data.row_count.toLocaleString()} Rows × ${data.column_count} Columns`;
+                        document.getElementById('ds-meta-sha').textContent = data.sha256;
+                        document.getElementById('ds-meta-time').textContent = new Date(data.ingestion_timestamp).toLocaleString();
+
+                        // Quality Stats
+                        const qr = data.quality_report;
+                        if (qr) {
+                            document.getElementById('quality-duplicates').textContent = `${qr.duplicate_rows} (${qr.duplicate_percentage}%)`;
+                            let nullCount = 0;
+                            Object.values(qr.missing_values || {}).forEach(m => nullCount += m.count);
+                            document.getElementById('quality-missing').textContent = `${nullCount} (0.0%)`;
+                            
+                            const td = qr.target_distribution || {};
+                            if (td.NotPlaced && td.Placed) {
+                                document.getElementById('quality-balance').textContent = `${Math.round(td.NotPlaced.percentage)}% : ${Math.round(td.Placed.percentage)}%`;
+                            }
+                        }
+                    }
+
+                    // Preview
+                    const prevRes = await fetch(`${baseUrl}/api/dataset/preview?limit=50`);
+                    if (prevRes.ok) {
+                        const prevData = await prevRes.json();
+                        const thead = document.getElementById('preview-thead');
+                        const tbody = document.getElementById('preview-tbody');
+
+                        let headerHtml = '<tr><th>#</th>';
+                        prevData.columns.forEach(col => {
+                            const isTarget = col === 'PlacementStatus';
+                            headerHtml += `<th>${col} ${isTarget ? '<span class="badge badge-primary">Target</span>' : ''}</th>`;
+                        });
+                        headerHtml += '</tr>';
+                        thead.innerHTML = headerHtml;
+
+                        let bodyHtml = '';
+                        prevData.records.forEach((row, idx) => {
+                            bodyHtml += `<tr><td style="color: var(--text-muted); font-size: 0.75rem;">${idx + 1}</td>`;
+                            prevData.columns.forEach(col => {
+                                const val = row[col];
+                                if (col === 'PlacementStatus') {
+                                    const badgeClass = val === 'Placed' ? 'badge-success' : 'badge-danger';
+                                    bodyHtml += `<td><span class="badge ${badgeClass}">${val}</span></td>`;
+                                } else {
+                                    bodyHtml += `<td>${val !== null ? val : '<em style="color: var(--text-muted);">null</em>'}</td>`;
+                                }
+                            });
+                            bodyHtml += '</tr>';
+                        });
+                        tbody.innerHTML = bodyHtml;
+                    }
+                } catch (err) {
+                    console.error("Dataset load error:", err);
+                }
+            }
+
+            // File selection
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    const f = fileInput.files[0];
+                    fileNameDisplay.textContent = `Selected: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+                    submitBtn.disabled = false;
+                }
+            });
+
+            // Drag and drop
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.style.borderColor = 'var(--primary)';
+                dropzone.style.background = 'var(--indigo-50)';
+            });
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.style.borderColor = 'var(--border-strong)';
+                dropzone.style.background = 'var(--slate-50)';
+            });
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.style.borderColor = 'var(--border-strong)';
+                dropzone.style.background = 'var(--slate-50)';
+                if (e.dataTransfer.files.length > 0) {
+                    fileInput.files = e.dataTransfer.files;
+                    const f = e.dataTransfer.files[0];
+                    fileNameDisplay.textContent = `Selected: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+                    submitBtn.disabled = false;
+                }
+            });
+
+            // Form Submit Upload
+            uploadForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!fileInput.files.length) return;
+
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Validating & Ingesting...';
+                feedbackBox.innerHTML = '';
+
+                try {
+                    const res = await fetch(`${baseUrl}/api/dataset/upload`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const resData = await res.json();
+                    if (res.ok) {
+                        feedbackBox.innerHTML = `
+                            <div class="alert alert-success">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <div>${resData.message} (${resData.metadata.row_count} rows ingested)</div>
+                            </div>
+                        `;
+                        loadDatasetInfo();
+                    } else {
+                        feedbackBox.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                                <div><strong>Validation Error:</strong> ${resData.detail}</div>
+                            </div>
+                        `;
+                    }
+                } catch (err) {
+                    feedbackBox.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            <div>Upload failed: ${err.message}</div>
+                        </div>
+                    `;
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-upload"></i> Upload & Validate Schema';
+                }
+            });
+
+            // Reset to default
+            document.getElementById('btn-reset-default').addEventListener('click', async () => {
+                if (confirm('Are you sure you want to reset the active dataset to the default Krooz benchmark?')) {
+                    try {
+                        const res = await fetch(`${baseUrl}/api/dataset/reset-default`, { method: 'POST' });
+                        if (res.ok) {
+                            alert('Active dataset reset to default Krooz benchmark.');
+                            loadDatasetInfo();
+                        }
+                    } catch (err) {
+                        alert('Reset failed: ' + err.message);
+                    }
+                }
+            });
+
+            loadDatasetInfo();
+        });
+    </script>
+</body>
+</html>

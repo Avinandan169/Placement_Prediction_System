@@ -55,7 +55,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO placement_us
 
 ## 3. Initialize Database Tables (`schema.sql`)
 
-Run the provided `schema.sql` script to create the `users` and `student_profiles` tables:
+Run the provided `schema.sql` script to create the `users`, `student_profiles`, and `prediction_history` tables:
 
 ```bash
 psql -h 127.0.0.1 -U placement_user -d placement_db -f schema.sql
@@ -86,8 +86,10 @@ SECRET_KEY=bc82ae2e962f00158ca189a7496fb033bbf4c03147270be6f18e07dd23d17284
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
 
-# Optional Integrations
-HF_TOKEN=your_huggingface_api_token
+# AI Integrations (Google Gemini API)
+GEMINI_API_KEY=your_gemini_api_key
+# Optional: customize model (defaults to gemini-2.5-flash with fallback to gemini-3.5-flash)
+# GEMINI_MODEL=gemini-2.5-flash
 ```
 
 ### Required vs. Optional Variables:
@@ -95,7 +97,8 @@ HF_TOKEN=your_huggingface_api_token
 | :--- | :--- | :--- |
 | `DB_USER`, `DB_PASS`, `DB_HOST`, `DB_PORT`, `DB_NAME` | **Required** | PostgreSQL connection |
 | `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES` | **Required** | Password hashing & JWT generation |
-| `HF_TOKEN` | *Optional* | Required only when calling `/generate-quiz` or `/chat/ask` |
+| `GEMINI_API_KEY` | **Required** | Gemini chatbot, quiz generator, and communication analysis |
+| `GEMINI_MODEL` | *Optional* | Gemini model override (e.g. `gemini-3.5-flash` or `gemini-2.5-flash`) |
 
 ---
 

@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuzzy Placement Readiness - Placement Prediction System</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="app-sidebar" id="sidebar-container"></aside>
+
+        <div class="app-main">
+            <header class="app-topbar" id="topbar-container"></header>
+
+            <main class="app-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Fuzzy Placement Readiness Assessment</h1>
+                        <p class="page-description">Explainable Mamdani Fuzzy Inference System for Soft Computing (CSE3121).</p>
+                    </div>
+                </div>
+
+                <!-- Academic Theory Alert -->
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-brain" style="font-size: 1.25rem;"></i>
+                    <div>
+                        <strong>CSE3121 Artificial Intelligence & Soft Computing:</strong> This module executes a genuine 
+                        <strong>Mamdani Fuzzy Inference System (FIS)</strong>. It maps crisp student indicators into fuzzy sets using 
+                        triangular and trapezoidal membership functions (\(\mu(x)\)), evaluates expert fuzzy rules via the 
+                        Mamdani minimum operator, aggregates consequences via maximum union, and defuzzifies the composite output using the 
+                        <strong>Centroid (Center of Gravity) method</strong>. 
+                        <em>This readiness score is distinct from the ML classification placement probability.</em>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <!-- Fuzzy Input Controls -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-sliders text-indigo-500"></i> Linguistic Input Variables
+                            </div>
+                            <span class="badge badge-neutral">Universe of Discourse</span>
+                        </div>
+                        <div class="card-body">
+                            <form id="fuzzy-form">
+                                <div class="form-group">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <label class="form-label" for="fuzzy-cgpa">University CGPA [0.0 - 10.0]:</label>
+                                        <strong id="val-cgpa-display" style="color: var(--primary);">8.2</strong>
+                                    </div>
+                                    <input type="range" class="form-control" id="fuzzy-cgpa" min="5.0" max="10.0" step="0.1" value="8.2" style="padding: 0.2rem 0;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted);">
+                                        <span>Low (&le; 6.5)</span>
+                                        <span>Medium (6.8 - 8.5)</span>
+                                        <span>High (&ge; 8.0)</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <label class="form-label" for="fuzzy-aptitude">Aptitude Score [0 - 100]:</label>
+                                        <strong id="val-apt-display" style="color: var(--primary);">82.0</strong>
+                                    </div>
+                                    <input type="range" class="form-control" id="fuzzy-aptitude" min="40" max="100" step="1" value="82" style="padding: 0.2rem 0;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted);">
+                                        <span>Low (&le; 60)</span>
+                                        <span>Medium (62 - 85)</span>
+                                        <span>High (&ge; 80)</span>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <label class="form-label" for="fuzzy-softskills">Soft Skills Rating [1.0 - 5.0]:</label>
+                                        <strong id="val-soft-display" style="color: var(--primary);">4.2</strong>
+                                    </div>
+                                    <input type="range" class="form-control" id="fuzzy-softskills" min="1.0" max="5.0" step="0.1" value="4.2" style="padding: 0.2rem 0;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--text-muted);">
+                                        <span>Low (&le; 2.5)</span>
+                                        <span>Medium (3.0 - 4.4)</span>
+                                        <span>High (&ge; 4.0)</span>
+                                    </div>
+                                </div>
+
+                                <div class="grid-2">
+                                    <div class="form-group">
+                                        <label class="form-label" for="fuzzy-projects">Projects Completed:</label>
+                                        <input type="number" class="form-control" id="fuzzy-projects" min="0" max="10" value="2">
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label" for="fuzzy-internships">Internships:</label>
+                                        <input type="number" class="form-control" id="fuzzy-internships" min="0" max="5" value="1">
+                                    </div>
+                                </div>
+
+                                <button type="button" class="btn btn-primary" id="btn-evaluate-fuzzy" style="width: 100%;">
+                                    <i class="fa-solid fa-gears"></i> Execute Fuzzy Inference
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Defuzzified Output Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-gauge-high text-indigo-500"></i> Defuzzified Readiness Output
+                            </div>
+                            <span class="badge badge-success" id="fuzzy-tier-badge">Placement Ready</span>
+                        </div>
+                        <div class="card-body">
+                            <!-- Score Display -->
+                            <div style="text-align: center; padding: 1.5rem 0; border-bottom: 1px solid var(--border-subtle); margin-bottom: 1.25rem;">
+                                <div style="font-size: 3.5rem; font-weight: 800; color: var(--primary); line-height: 1;" id="fuzzy-score-val">82.5</div>
+                                <div style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-top: 0.5rem;" id="fuzzy-tier-title">
+                                    Placement Ready
+                                </div>
+                                <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.25rem;">
+                                    Defuzzification Method: Centroid / Center of Gravity (\(z^*\))
+                                </div>
+                            </div>
+
+                            <!-- Membership Degrees Breakdown -->
+                            <div style="margin-bottom: 1.25rem;">
+                                <div style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem;">Fuzzified Input Degrees of Membership:</div>
+                                <div id="membership-breakdown-box" style="font-size: 0.8rem; line-height: 1.8;"></div>
+                            </div>
+
+                            <!-- Explanation Summary -->
+                            <div style="background-color: var(--slate-50); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.85rem; font-size: 0.82rem; color: var(--text-secondary);" id="fuzzy-explanation-text">
+                                Inference active across 16 expert fuzzy rules.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Membership Functions Visualizer -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-bezier-curve text-indigo-500"></i> Linguistic Variable Membership Functions (\(\mu(x)\))
+                        </div>
+                        <span class="badge badge-neutral">Triangular & Trapezoidal Curves</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="grid-2">
+                            <div>
+                                <div style="font-weight: 600; font-size: 0.82rem; text-align: center; margin-bottom: 0.5rem;">CGPA Membership Function Curves</div>
+                                <div style="height: 220px; position: relative;">
+                                    <canvas id="chart-fuzzy-cgpa"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 0.82rem; text-align: center; margin-bottom: 0.5rem;">Aptitude Score Membership Function Curves</div>
+                                <div style="height: 220px; position: relative;">
+                                    <canvas id="chart-fuzzy-aptitude"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activated Rules Tracing Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-list-check text-indigo-500"></i> Activated Fuzzy Rules & Alpha-Cuts Tracing
+                        </div>
+                        <span class="badge badge-primary" id="badge-rules-count">Rules Activated</span>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-responsive">
+                            <table class="data-table" id="fuzzy-rules-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rule ID</th>
+                                        <th>Antecedent Conditions (AND = min)</th>
+                                        <th>Consequent Category</th>
+                                        <th>Firing Strength (\(\alpha\)-cut)</th>
+                                        <th>Expert Explanation</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fuzzy-rules-tbody">
+                                    <tr>
+                                        <td colspan="5" style="text-align: center; padding: 2rem;">Loading fuzzy rules...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="nav.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const baseUrl = (typeof API_CONFIG !== 'undefined' && API_CONFIG.MAIN_API_BASE_URL) || 'http://127.0.0.1:8000';
+            
+            const cgpaInput = document.getElementById('fuzzy-cgpa');
+            const aptInput = document.getElementById('fuzzy-aptitude');
+            const softInput = document.getElementById('fuzzy-softskills');
+            const projInput = document.getElementById('fuzzy-projects');
+            const internInput = document.getElementById('fuzzy-internships');
+            const evalBtn = document.getElementById('btn-evaluate-fuzzy');
+
+            let cgpaChart = null;
+            let aptChart = null;
+
+            cgpaInput.addEventListener('input', () => document.getElementById('val-cgpa-display').textContent = cgpaInput.value);
+            aptInput.addEventListener('input', () => document.getElementById('val-apt-display').textContent = aptInput.value);
+            softInput.addEventListener('input', () => document.getElementById('val-soft-display').textContent = softInput.value);
+
+            async function evaluateFuzzy() {
+                evalBtn.disabled = true;
+                evalBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Inferring...';
+
+                const payload = {
+                    cgpa: parseFloat(cgpaInput.value),
+                    aptitude: parseFloat(aptInput.value),
+                    soft_skills: parseFloat(softInput.value),
+                    projects: parseInt(projInput.value, 10),
+                    internships: parseInt(internInput.value, 10)
+                };
+
+                try {
+                    const res = await fetch(`${baseUrl}/api/fuzzy/evaluate`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+
+                    if (!res.ok) throw new Error(data.detail || "Fuzzy inference failed");
+
+                    // 1. Score & Tier
+                    document.getElementById('fuzzy-score-val').textContent = data.readiness_score;
+                    document.getElementById('fuzzy-tier-title').textContent = data.readiness_tier;
+                    const badge = document.getElementById('fuzzy-tier-badge');
+                    badge.textContent = data.readiness_tier;
+                    badge.className = `badge badge-${data.readiness_badge}`;
+
+                    // 2. Fuzzified Memberships Breakdown
+                    const mbBox = document.getElementById('membership-breakdown-box');
+                    const fm = data.fuzzified_memberships;
+                    mbBox.innerHTML = `
+                        <div><strong>CGPA (${payload.cgpa}):</strong> Low: ${fm.CGPA.Low}, Med: ${fm.CGPA.Medium}, High: ${fm.CGPA.High}</div>
+                        <div><strong>Aptitude (${payload.aptitude}):</strong> Low: ${fm.AptitudeScore.Low}, Med: ${fm.AptitudeScore.Medium}, High: ${fm.AptitudeScore.High}</div>
+                        <div><strong>Soft Skills (${payload.soft_skills}):</strong> Low: ${fm.SoftSkills.Low}, Med: ${fm.SoftSkills.Medium}, High: ${fm.SoftSkills.High}</div>
+                    `;
+
+                    document.getElementById('fuzzy-explanation-text').textContent = data.explanation_summary;
+
+                    // 3. Activated Rules
+                    const rulesTbody = document.getElementById('fuzzy-rules-tbody');
+                    const rules = data.activated_rules || [];
+                    document.getElementById('badge-rules-count').textContent = `${rules.length} Rules Activated`;
+
+                    let rHtml = '';
+                    rules.forEach(r => {
+                        const condStr = Object.entries(r.conditions).map(([k, v]) => `${k.toUpperCase()}=${v}`).join(' AND ');
+                        rHtml += `
+                            <tr>
+                                <td><strong>Rule #${r.rule_id}</strong></td>
+                                <td><code>${condStr}</code></td>
+                                <td><span class="badge badge-primary">${r.consequent}</span></td>
+                                <td><strong style="color: var(--primary);">${r.alpha_cut}</strong></td>
+                                <td style="font-size: 0.82rem;">${r.explanation}</td>
+                            </tr>
+                        `;
+                    });
+                    rulesTbody.innerHTML = rHtml || '<tr><td colspan="5" style="text-align:center;">No rules activated.</td></tr>';
+
+                    // 4. Render Curves
+                    renderCurves(data.curves_data);
+
+                } catch (err) {
+                    alert("Fuzzy inference error: " + err.message);
+                } finally {
+                    evalBtn.disabled = false;
+                    evalBtn.innerHTML = '<i class="fa-solid fa-gears"></i> Execute Fuzzy Inference';
+                }
+            }
+
+            function renderCurves(curves) {
+                if (!curves) return;
+
+                // CGPA Curves
+                if (cgpaChart) cgpaChart.destroy();
+                cgpaChart = new Chart(document.getElementById('chart-fuzzy-cgpa'), {
+                    type: 'line',
+                    data: {
+                        labels: curves.cgpa.x,
+                        datasets: [
+                            { label: 'Low', data: curves.cgpa.low, borderColor: '#f43f5e', fill: false, tension: 0.1 },
+                            { label: 'Medium', data: curves.cgpa.medium, borderColor: '#f59e0b', fill: false, tension: 0.1 },
+                            { label: 'High', data: curves.cgpa.high, borderColor: '#10b981', fill: false, tension: 0.1 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } },
+                        scales: {
+                            x: { title: { display: true, text: 'CGPA' } },
+                            y: { min: 0, max: 1, title: { display: true, text: 'Degree of Membership (\u03bc)' } }
+                        }
+                    }
+                });
+
+                // Aptitude Curves
+                if (aptChart) aptChart.destroy();
+                aptChart = new Chart(document.getElementById('chart-fuzzy-aptitude'), {
+                    type: 'line',
+                    data: {
+                        labels: curves.aptitude.x,
+                        datasets: [
+                            { label: 'Low', data: curves.aptitude.low, borderColor: '#f43f5e', fill: false, tension: 0.1 },
+                            { label: 'Medium', data: curves.aptitude.medium, borderColor: '#f59e0b', fill: false, tension: 0.1 },
+                            { label: 'High', data: curves.aptitude.high, borderColor: '#10b981', fill: false, tension: 0.1 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } },
+                        scales: {
+                            x: { title: { display: true, text: 'Aptitude Score' } },
+                            y: { min: 0, max: 1, title: { display: true, text: 'Degree of Membership (\u03bc)' } }
+                        }
+                    }
+                });
+            }
+
+            evalBtn.addEventListener('click', evaluateFuzzy);
+            evaluateFuzzy();
+        });
+    </script>
+</body>
+</html>

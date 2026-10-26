@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction History - Placement Prediction System</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="app-sidebar" id="sidebar-container"></aside>
+
+        <div class="app-main">
+            <header class="app-topbar" id="topbar-container"></header>
+
+            <main class="app-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Placement Prediction Audit History</h1>
+                        <p class="page-description">Persistent records of candidate assessments, model versions, and probability outputs stored in PostgreSQL.</p>
+                    </div>
+                    <div class="page-actions">
+                        <a href="predict.html" class="btn btn-primary btn-sm">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> New Prediction
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-database text-indigo-500"></i> Logged Inference Audit Trail
+                        </div>
+                        <span class="badge badge-neutral" id="history-count-badge">Loading...</span>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <!-- Empty State -->
+                        <div class="empty-state" id="history-empty" style="display: none;">
+                            <div class="empty-state-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
+                            <div class="empty-state-title">No Prediction Records Found</div>
+                            <div class="empty-state-desc">You haven't run or saved any placement predictions yet. Sign in and run a prediction to build an audit history.</div>
+                            <a href="predict.html" class="btn btn-primary btn-sm">Run First Prediction</a>
+                        </div>
+
+                        <!-- History Table -->
+                        <div class="table-responsive" id="history-table-container">
+                            <table class="data-table" id="table-history">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Candidate</th>
+                                        <th>CGPA</th>
+                                        <th>Aptitude</th>
+                                        <th>Projects</th>
+                                        <th>Internships</th>
+                                        <th>Outcome</th>
+                                        <th>Probability</th>
+                                        <th>Model Version</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-history">
+                                    <tr>
+                                        <td colspan="9" style="text-align: center; padding: 2.5rem;">Loading prediction history records...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="nav.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const baseUrl = (typeof API_CONFIG !== 'undefined' && API_CONFIG.MAIN_API_BASE_URL) || 'http://127.0.0.1:8000';
+            const token = localStorage.getItem('token');
+            const emptyBox = document.getElementById('history-empty');
+            const tableBox = document.getElementById('history-table-container');
+            const tbody = document.getElementById('tbody-history');
+            const countBadge = document.getElementById('history-count-badge');
+
+            if (!token) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 2.5rem;">
+                            <div style="font-weight: 600; margin-bottom: 0.5rem;">Please Sign In to Access Personal Prediction History</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Guest predictions are calculated live but not tied to a user account.</div>
+                            <a href="login.html" class="btn btn-primary btn-sm">Sign In to View History</a>
+                        </td>
+                    </tr>
+                `;
+                countBadge.textContent = 'Authentication Required';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${baseUrl}/api/history/my`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error("Failed to load history");
+                const data = await res.json();
+                const history = data.history || [];
+
+                countBadge.textContent = `${history.length} Records Logged`;
+
+                if (history.length === 0) {
+                    tableBox.style.display = 'none';
+                    emptyBox.style.display = 'block';
+                    return;
+                }
+
+                let html = '';
+                history.forEach(item => {
+                    const dateStr = item.created_at ? new Date(item.created_at).toLocaleString() : 'N/A';
+                    const isPlaced = item.prediction_result === 'Placed';
+                    const badgeClass = isPlaced ? 'badge-success' : 'badge-danger';
+
+                    html += `
+                        <tr>
+                            <td style="font-size: 0.78rem; color: var(--text-secondary); white-space: nowrap;">${dateStr}</td>
+                            <td><strong>${item.student_name || 'Candidate'}</strong></td>
+                            <td>${item.cgpa !== null ? item.cgpa : 'N/A'}</td>
+                            <td>${item.aptitude_score !== null ? item.aptitude_score : 'N/A'}</td>
+                            <td>${item.projects !== null ? item.projects : 'N/A'}</td>
+                            <td>${item.internships !== null ? item.internships : 'N/A'}</td>
+                            <td><span class="badge ${badgeClass}">${item.prediction_result}</span></td>
+                            <td><strong style="color: ${isPlaced ? 'var(--success)' : 'var(--danger)'};">${item.placement_probability !== null ? item.placement_probability + '%' : 'N/A'}</strong></td>
+                            <td style="font-size: 0.75rem; color: var(--text-muted);">${item.model_version || 'LogReg Pipeline'}</td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+
+            } catch (err) {
+                console.error("History fetch error:", err);
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color: var(--danger);">Failed to load history: ${err.message}</td></tr>`;
+            }
+        });
+    </script>
+</body>
+</html>

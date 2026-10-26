@@ -8,57 +8,66 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">
-            <span>AI</span> Placements Dashboard
-        </div>
-        <div>
-            <span id="welcome-user" style="margin-right: 1rem;">Welcome!</span>
-            <a href="#" id="logout-btn" class="btn">Logout</a>
-        </div>
-    </nav>
+    <div class="app-shell">
+        <aside class="app-sidebar" id="sidebar-container"></aside>
 
-    <div class="main-content" style="padding: 2rem 5rem;"> 
-        
-        <div class="upload-job-card">
-            <h4><i class="fas fa-file-arrow-up"></i> Upload Job Description</h4>
-            <p>Upload a PDF to analyze required skills and match students.</p>
-            <form id="upload-jd-form" class="upload-jd-form">
-                <input type="file" id="jd-file" accept=".pdf" required>
-                <button type="submit" class="btn btn-gradient">Upload PDF</button>
-            </form>
-        </div>
+        <div class="app-main">
+            <header class="app-topbar" id="topbar-container"></header>
 
-        <div class="job-skills-card" id="job-skills-card">
-            <h3>Required Skills for Job</h3>
-            <div class="skill-tags" id="job-skills-container">
+            <main class="app-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Placement Officer Management Console</h1>
+                        <p class="page-description">Screen institutional student profiles, match cohort skills to job descriptions, and rank candidates.</p>
+                    </div>
                 </div>
-        </div>
 
-        <div class="student-list-card">
-            <div class="student-list-header">
-                <div>
-                    <h3>Student Rankings</h3>
-                    <p id="student-count">Loading students...</p>
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i class="fa-solid fa-file-arrow-up text-indigo-500"></i> Upload Target Job Description</div>
+                    </div>
+                    <div class="card-body">
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Upload a corporate recruitment job description (PDF) to parse required competencies and match candidates.</p>
+                        <form id="upload-jd-form" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                            <input type="file" id="jd-file" accept=".pdf" class="form-control" style="width: auto;" required>
+                            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass"></i> Analyze JD & Rank Cohort</button>
+                        </form>
+                    </div>
                 </div>
-                <button class="btn"><i class="fas fa-envelope"></i> Email Top 3</button>
-            </div>
-            
-            <div class="search-bar">
-                <i class="fas fa-search"></i>
-                <input type="text" id="search-input" placeholder="Search by name, email, or skills...">
-                <select id="filter-skills">
-                    <option value="">All Skills</option>
-                </select>
-            </div>
 
-            <div id="student-list-container">
-                <div class="student-card-placeholder">Loading student data...</div>
-            </div>
+                <div class="card" id="job-skills-card" style="display: none;">
+                    <div class="card-header">
+                        <div class="card-title"><i class="fa-solid fa-tags text-indigo-500"></i> Required Skills Extracted from JD</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="skill-tags" id="job-skills-container"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><i class="fa-solid fa-users text-indigo-500"></i> Registered Student Candidates</div>
+                        <span class="badge badge-primary" id="student-count">Loading students...</span>
+                    </div>
+                    <div class="card-body">
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+                            <input type="text" id="search-input" class="form-control" style="flex: 1; min-width: 200px;" placeholder="Search students by name, email, or skill...">
+                            <select id="filter-skills" class="form-select" style="width: auto; min-width: 160px;">
+                                <option value="">All Skills</option>
+                            </select>
+                        </div>
+
+                        <div id="student-list-container">
+                            <div class="student-card-placeholder" style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading student data...</div>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
     </div>
 
     <script src="config.js"></script>
+    <script src="nav.js"></script>
     <script>
         // --- 0. Global variable to hold all student data ---
         let allStudentsData = [];
@@ -80,7 +89,8 @@
         
         document.getElementById('logout-btn').addEventListener('click', (e) => {
             e.preventDefault();
-            localStorage.removeItem('accessToken');
+            localStorage.clear();
+            sessionStorage.clear();
             alert('You have been logged out.');
             window.location.href = getRedirectPath('login.html');
         });

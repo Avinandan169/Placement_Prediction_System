@@ -121,6 +121,112 @@ class TestVoiceAnalyzer(unittest.TestCase):
             self.assertEqual(metrics["Articulation (Pace)"], "10.0/10")
             self.assertEqual(metrics["Vocal Jitter (Nervousness)"], "8.0/10")
 
+    def test_communication_analyzer_missing_credentials_raises_value_error(self):
+        """Missing GEMINI_API_KEY produces clear diagnostic ValueError."""
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaises(ValueError) as ctx:
+                CommunicationAnalyzer(gemini_api_key=None)
+            self.assertIn("GEMINI_API_KEY is not set", str(ctx.exception))
+
+    def test_analyze_text_empty_input_returns_zeroed_scores(self):
+        """Empty or whitespace-only input returns safe zeroed metrics without calling API."""
+        with patch.object(CommunicationAnalyzer, '__init__', lambda self, gemini_api_key: None):
+            analyzer = CommunicationAnalyzer(gemini_api_key="fake_key")
+            analyzer.client = MagicMock()
+
+            result = analyzer.analyze_text("   ")
+            self.assertEqual(result["vocabulary_rating"], 0.0)
+            self.assertEqual(result["filler_words_count"], 0)
+            self.assertEqual(result["filler_words_list"], [])
+            self.assertIn("No speech detected", result["feedback"])
+            analyzer.client.models.generate_content.assert_not_called()
+
+    def test_analyze_text_valid_gemini_response_parsed_correctly(self):
+        """Valid structured JSON response from Gemini is cleanly parsed and normalized."""
+        with patch.object(CommunicationAnalyzer, '__init__', lambda self, gemini_api_key: None):
+            analyzer = CommunicationAnalyzer(gemini_api_key="fake_key")
+            mock_client = MagicMock()
+            mock_response = MagicMock()
+            mock_response.text = '{"vocabulary_rating": 8.5, "filler_words_count": 1, "filler_words_list": ["um"], "feedback": "Good speech."}'
+            mock_client.models.generate_content.return_value = mock_response
+            analyzer.client = mock_client
+
+            result = analyzer.analyze_text("I led the initiative on microservices.")
+            self.assertEqual(result["vocabulary_rating"], 8.5)
+            self.assertEqual(result["filler_words_count"], 1)
+            self.assertEqual(result["filler_words_list"], ["um"])
+            self.assertEqual(result["feedback"], "Good speech.")
+
+    def test_analyze_text_primary_model_quota_fallback_success(self):
+        """When primary model encounters 429 quota exhaustion, fallback model is tried and succeeds."""
+        from google.genai.errors import APIError
+        with patch.object(CommunicationAnalyzer, '__init__', lambda self, gemini_api_key: None):
+            analyzer = CommunicationAnalyzer(gemini_api_key="fake_key")
+            mock_client = MagicMock()
+
+            # First call raises 429, second call succeeds
+            err_429 = APIError(429, {"error": {"message": "Quota exceeded for gemini-2.5-flash", "code": 429}})
+            mock_success_response = MagicMock()
+            mock_success_response.text = '{"vocabulary_rating": 7.0, "filler_words_count": 0, "filler_words_list": [], "feedback": "Clear delivery."}'
+            mock_client.models.generate_content.side_effect = [err_429, mock_success_response]
+            analyzer.client = mock_client
+
+            result = analyzer.analyze_text("This is speech to analyze.")
+            self.assertNotIn("error", result)
+            self.assertEqual(result["vocabulary_rating"], 7.0)
+            self.assertEqual(mock_client.models.generate_content.call_count, 2)
+
+    def test_analyze_text_quota_exhausted_returns_429_status(self):
+        """When all models are exhausted, analyze_text returns structured 429 error."""
+        from google.genai.errors import APIError
+        with patch.object(CommunicationAnalyzer, '__init__', lambda self, gemini_api_key: None):
+            analyzer = CommunicationAnalyzer(gemini_api_key="fake_key")
+            mock_client = MagicMock()
+
+            err_429 = APIError(429, {"error": {"message": "You exceeded your current quota.", "code": 429}})
+            mock_client.models.generate_content.side_effect = err_429
+            analyzer.client = mock_client
+
+            result = analyzer.analyze_text("Speech content.")
+            self.assertIn("error", result)
+            self.assertEqual(result["status_code"], 429)
+            self.assertIn("429", result["error"])
+
+    def test_analyze_text_malformed_json_returns_502_status(self):
+        """Malformed non-JSON output from Gemini returns 502 with diagnostic."""
+        with patch.object(CommunicationAnalyzer, '__init__', lambda self, gemini_api_key: None):
+            analyzer = CommunicationAnalyzer(gemini_api_key="fake_key")
+            mock_client = MagicMock()
+            mock_response = MagicMock()
+            mock_response.text = "NOT_A_VALID_JSON_STRING"
+            mock_client.models.generate_content.return_value = mock_response
+            analyzer.client = mock_client
+
+            result = analyzer.analyze_text("Speech content.")
+            self.assertIn("error", result)
+            self.assertEqual(result["status_code"], 502)
+            self.assertIn("Failed to parse Gemini response", result["error"])
+
+    def test_analyze_audio_endpoint_propagates_429_http_code(self):
+        """The FastAPI /analyze_audio/ endpoint propagates HTTP 429 when Gemini quota is exhausted."""
+        mock_analyzer = MagicMock()
+        mock_analyzer.get_final_analysis.return_value = {
+            "error": "Gemini API error (429): Quota exceeded. Please retry in 20h.",
+            "status_code": 429
+        }
+        original_analyzer = backend.analyzer
+        backend.analyzer = mock_analyzer
+
+        try:
+            response = self.client.post(
+                "/analyze_audio/",
+                files={"file": ("speech.wav", b"RIFF dummy audio data", "audio/wav")}
+            )
+            self.assertEqual(response.status_code, 429)
+            self.assertIn("Quota exceeded", response.json()["detail"])
+        finally:
+            backend.analyzer = original_analyzer
+
 
 if __name__ == "__main__":
     unittest.main()

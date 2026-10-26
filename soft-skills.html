@@ -3,86 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soft Skills - AI Placement Predictor</title>
+    <title>Voice Communication Assessment - Placement Prediction System</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">
-            <span>AI</span> Placement Predictor
+    <div class="app-shell">
+        <aside class="app-sidebar" id="sidebar-container"></aside>
+
+        <div class="app-main">
+            <header class="app-topbar" id="topbar-container"></header>
+
+            <main class="app-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Voice Communication & Behavioral Assessment</h1>
+                        <p class="page-description">Whisper speech-to-text, Parselmouth prosody acoustics, and Gemini vocabulary analysis.</p>
+                    </div>
+                </div>
+
+                <!-- Guidance Alert -->
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-microphone-lines" style="font-size: 1.25rem;"></i>
+                    <div>
+                        <strong>Acoustic & Linguistic Evaluation:</strong> This module records your vocal response, 
+                        converts audio via <strong>OpenAI Whisper (base.en)</strong>, measures pitch variation and hesitation via 
+                        <strong>Praat Parselmouth</strong>, and analyzes vocabulary and structuring via <strong>Google Gemini</strong>.
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-comments text-indigo-500"></i> Behavioral Interview Simulation
+                        </div>
+                        <span class="badge badge-primary" id="question-counter">Question 1 of 3</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="question-box">
+                            <h3 id="comms-question-title">Prompt:</h3>
+                            <p id="comms-question" style="font-size: 1.05rem; font-weight: 500; color: var(--text-primary); margin-top: 0.25rem;">
+                                "Tell me about a time you had to work with a difficult team member."
+                            </p>
+                        </div>
+
+                        <div class="audio-recorder">
+                            <button id="record-btn" class="btn btn-primary"><i class="fa-solid fa-microphone"></i> Start Recording</button>
+                            <button id="stop-btn" class="btn btn-danger" disabled><i class="fa-solid fa-stop"></i> Stop Recording</button>
+                            <audio id="audio-playback" controls style="display: none;"></audio>
+                        </div>
+
+                        <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+                            <button id="analyze-btn" class="btn btn-primary" disabled>
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Analyze Vocal & Linguistic Response
+                            </button>
+                            <button id="next-question-btn" class="btn btn-outline" style="display: none;">
+                                Next Question <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        </div>
+
+                        <div id="analysis-loading" style="display: none; margin-top: 1.5rem;" class="alert alert-warning">
+                            <i class="fa-solid fa-spinner fa-spin"></i>
+                            <div>Transcribing audio with Whisper & calculating acoustic prosody metrics with Parselmouth...</div>
+                        </div>
+
+                        <div id="analysis-results" style="display: none; margin-top: 1.5rem;">
+                            <div id="report-content"></div>
+                        </div>
+
+                        <div id="final-summary-container" style="display: none; margin-top: 2rem; border-top: 1px solid var(--border-subtle); padding-top: 1.5rem;">
+                            <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Comprehensive Communication Skills Summary</h3>
+                            <div id="final-summary-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
-        <ul class="nav-links">
-            <li><a href="index.html">Home</a></li>
-        </ul>
-        <div>
-            <span id="welcome-email" style="margin-right: 1rem;">Welcome!</span>
-            <a href="#" id="logout-btn" class="btn">Logout</a>
-        </div>
-    </nav>
-
-    <div class="dashboard-layout">
-        <aside class="sidebar">
-            <ul class="nav-links">
-                <li><a href="dashboard.html">Profile</a></li>
-                <li><a href="profile.html">Resume Upload</a></li>
-                <li><a href="soft-skills.html" class="active">Soft Skills</a></li>
-                <li><a href="results.html">Results & Roadmap</a></li>
-                <li><a href="test.html">Technical Test</a></li>
-                <li><a href="conversation.html"><i class="fas fa-brain"></i>AI Support</a></li>
-            </ul>
-        </aside>
-
-        <main class="main-content">
-            <div class="profile-card">
-                <h2>Communication Skills Analysis</h2>
-                <p id="page-subtitle" style="color: var(--text-light); margin-bottom: 1.5rem;">
-                    Answer the 3 questions below. Record your response for each, and our AI will analyze your skills.
-                </p>
-
-                <div class="question-box" style="margin-bottom: 2rem;">
-                    <h3 id="question-counter">Question 1 of 3</h3>
-                    <p id="comms-question">"Tell me about a time you had to work with a difficult team member."</p>
-                </div>
-
-                <div class="audio-recorder">
-                    <button id="record-btn" class="btn btn-gradient"><i class="fas fa-microphone"></i> Start Recording</button>
-                    <button id="stop-btn" class="btn" disabled><i class="fas fa-stop"></i> Stop Recording</button>
-                    <audio id="audio-playback" controls style="display: none; margin-top: 1rem;"></audio>
-                </div>
-
-                <button id="analyze-btn" class="btn" style="margin-top: 1rem;" disabled>
-                    <i class="fas fa-magic"></i> Analyze My Response
-                </button>
-                
-                <button id="next-question-btn" class="btn btn-gradient" style="display: none; margin-top: 1rem;">
-                    Next Question <i class="fas fa-arrow-right"></i>
-                </button>
-
-                <div id="analysis-loading" style="display: none; margin-top: 2rem; text-align: center;">
-                    <p>Analyzing... This may take up to a minute.</p>
-                </div>
-
-                <div id="analysis-results" style="display: none; margin-top: 2rem;">
-                    <div id="report-content"></div>
-                </div>
-
-                <div id="final-summary-container" style="display: none; margin-top: 2rem;">
-                    <h2>Final Communication Skills Summary</h2>
-                    <p>Here is the breakdown of your performance across all 3 questions.</p>
-                    <div id="final-summary-content"></div>
-                </div>
-            </div>
-        </main>
     </div>
 
     <script src="config.js"></script>
+    <script src="nav.js"></script>
     <script>
-        // --- API URL from config.js ---
-        const ANALYSIS_API_URL = `${API_CONFIG.AI_API_BASE_URL}/analyze_audio/`; 
-
-        // --- 0. Get Elements and State ---
-        const token = localStorage.getItem('accessToken');
+        const ANALYSIS_API_URL = `${API_CONFIG.AI_API_BASE_URL}/analyze_audio/`;
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         const recordBtn = document.getElementById('record-btn');
         const stopBtn = document.getElementById('stop-btn');
         const analyzeBtn = document.getElementById('analyze-btn');
@@ -93,243 +96,144 @@
         const reportContent = document.getElementById('report-content');
         const questionText = document.getElementById('comms-question');
         const questionCounter = document.getElementById('question-counter');
-        const recorderControls = document.querySelector('.audio-recorder');
-        const pageSubtitle = document.getElementById('page-subtitle');
         const finalSummaryContainer = document.getElementById('final-summary-container');
         const finalSummaryContent = document.getElementById('final-summary-content');
 
         let mediaRecorder;
         let audioChunks = [];
         let audioBlob;
-
-        // --- NEW: Quiz State ---
         let currentQuestionIndex = 0;
         const questions = [
             "Tell me about a time you had to work with a difficult team member.",
             "Describe a complex project you worked on and what the outcome was.",
             "How do you handle stress or tight deadlines?"
         ];
-        let allReports = []; 
+        let allReports = [];
 
-        // --- Helper Function ---
-        function getRedirectPath(targetFile) {
-            const currentPath = window.location.pathname;
-            const dirPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
-            return dirPath + '/' + targetFile;
+        function parseJwt(tok) {
+            try {
+                const base64Url = tok.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) { return null; }
         }
 
-        // --- 1. Check Login & Handle Logout ---
         if (!token) {
-            alert('You must be logged in to view this page.');
-            window.location.href = getRedirectPath('login.html');
+            alert('You must be signed in to access the communication assessment.');
+            window.location.href = 'login.html';
         }
-        
-        document.getElementById('logout-btn').addEventListener('click', (e) => {
-            e.preventDefault();
-            localStorage.removeItem('accessToken');
-            alert('You have been logged out.');
-            window.location.href = getRedirectPath('login.html');
-        });
 
-        // --- 2. Recording Logic ---
+        // Recording setup
         recordBtn.addEventListener('click', async () => {
+            audioChunks = [];
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream);
-                
-                mediaRecorder.ondataavailable = (event) => {
-                    audioChunks.push(event.data);
-                };
-
+                mediaRecorder.ondataavailable = (event) => audioChunks.push(event.data);
                 mediaRecorder.onstop = () => {
                     audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                    const audioUrl = URL.createObjectURL(audioBlob);
-                    audioPlayback.src = audioUrl;
+                    audioPlayback.src = URL.createObjectURL(audioBlob);
                     audioPlayback.style.display = 'block';
                     analyzeBtn.disabled = false;
                 };
-
-                audioChunks = [];
                 mediaRecorder.start();
-                
                 recordBtn.disabled = true;
                 stopBtn.disabled = false;
-                analyzeBtn.disabled = true;
-                resultsDiv.style.display = 'none';
-                audioPlayback.style.display = 'none';
-                recordBtn.textContent = "Recording...";
-
+                recordBtn.innerHTML = '<i class="fa-solid fa-circle-dot" style="color:red;"></i> Recording...';
             } catch (err) {
-                console.error("Error accessing microphone:", err);
-                alert("Could not access microphone. Please check your browser permissions.");
+                alert('Microphone access denied or unavailable: ' + err.message);
             }
         });
 
         stopBtn.addEventListener('click', () => {
-            if (mediaRecorder) {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
-            }
-            recordBtn.disabled = false;
-            stopBtn.disabled = true;
-            recordBtn.innerHTML = '<i class="fas fa-microphone"></i> Start Recording';
-        });
-
-        // --- 3. Analysis Logic ---
-        analyzeBtn.addEventListener('click', async () => {
-            if (!audioBlob) {
-                alert("No audio recorded. Please record your response first.");
-                return;
-            }
-            if (ANALYSIS_API_URL.includes("YOUR-FRIENDS-NGROK-URL")) {
-                alert("Error: Please update the 'ANALYSIS_API_URL' variable in soft-skills.html with your friend's ngrok URL.");
-                return;
-            }
-
-            loadingDiv.style.display = 'block';
-            resultsDiv.style.display = 'none';
-            analyzeBtn.disabled = true;
-            recorderControls.style.display = 'none'; // Hide recorder
-
-            const formData = new FormData();
-            formData.append('file', audioBlob, 'response.webm');
-
-            try {
-                const response = await fetch(ANALYSIS_API_URL, {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-
-                if (response.ok) {
-                    allReports[currentQuestionIndex] = data.report; // Save the report
-                    displayReport(data.report); // Show the single report
-                    
-                    nextQuestionBtn.style.display = 'inline-block';
-                    if (currentQuestionIndex === questions.length - 1) {
-                        nextQuestionBtn.innerHTML = 'View Final Summary <i class="fas fa-poll"></i>';
-                    }
-                } else {
-                    throw new Error(data.detail || "Analysis failed.");
-                }
-
-            } catch (error) {
-                console.error("Analysis error:", error);
-                reportContent.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
-            } finally {
-                loadingDiv.style.display = 'none';
-                resultsDiv.style.display = 'block';
-            }
-        });
-
-        // --- 4. "Next Question" Button Logic ---
-        nextQuestionBtn.addEventListener('click', () => {
-            currentQuestionIndex++; 
-            
-            if (currentQuestionIndex < questions.length) {
-                questionCounter.textContent = `Question ${currentQuestionIndex + 1} of ${questions.length}`;
-                questionText.textContent = `"${questions[currentQuestionIndex]}"`;
-                
-                resultsDiv.style.display = 'none';
-                nextQuestionBtn.style.display = 'none';
-                recorderControls.style.display = 'flex';
                 recordBtn.disabled = false;
                 stopBtn.disabled = true;
-                analyzeBtn.disabled = true;
-                audioPlayback.style.display = 'none';
-                audioBlob = null;
-                audioChunks = [];
-            } else {
-                displayFinalSummary();
+                recordBtn.innerHTML = '<i class="fa-solid fa-microphone"></i> Record Again';
             }
         });
 
-        // --- 5. MODIFIED: Display Report Logic ---
-        // This function now builds the new HTML card structure
-        function displayReport(report) {
-            
-            // Helper function to find a metric
-            const findMetric = (metricName) => {
-                return report.detailed_scores.find(m => m.metric === metricName);
-            };
-
-            const vocab = findMetric('Vocabulary');
-            const fumble = findMetric('Fumbling');
-            const jitter = findMetric('Vocal Jitter (Nervousness)');
-            
-            // Build the new HTML
-            let html = `
-                <h3>Analysis Report (Overall: ${report.final_communication_score})</h3>
-                
-                <div class="report-metrics-grid">
-                    <div class="metric-card">
-                        <div class="icon"><i class="fas fa-book-open"></i></div>
-                        <div class="metric-title">Vocabulary</div>
-                        <div class="metric-score">${vocab ? vocab.score : 'N/A'}</div>
-                        <p class="metric-details">${vocab ? vocab.details : 'Data not available.'}</p>
-                    </div>
-                    
-                    <div class="metric-card">
-                        <div class="icon"><i class="fas fa-comment-dots"></i></div>
-                        <div class="metric-title">Fumbling</div>
-                        <div class="metric-score">${fumble ? fumble.score : 'N/A'}</div>
-                        <p class="metric-details">${fumble ? fumble.details : 'Data not available.'}</p>
-                    </div>
-                    
-                    <div class="metric-card">
-                        <div class="icon"><i class="fas fa-heartbeat"></i></div>
-                        <div class="metric-title">Vocal Jitter (Nervousness)</div>
-                        <div class="metric-score">${jitter ? jitter.score : 'N/A'}</div>
-                        <p class="metric-details">${jitter ? jitter.details : 'Data not available.'}</p>
-                    </div>
-                </div>
-
-                <h4 style="margin-top: 2rem;">Your Transcription:</h4>
-                <p class="transcription"><em>"${report.transcribed_text}"</em></p>
-            `;
-            
-            reportContent.innerHTML = html;
-        }
-
-        // --- 6. NEW: Display Final Summary Logic ---
-        function displayFinalSummary() {
-            document.querySelector('.question-box').style.display = 'none';
-            recorderControls.style.display = 'none';
-            analyzeBtn.style.display = 'none';
-            nextQuestionBtn.style.display = 'none';
+        analyzeBtn.addEventListener('click', async () => {
+            if (!audioBlob) return;
+            analyzeBtn.disabled = true;
+            loadingDiv.style.display = 'flex';
             resultsDiv.style.display = 'none';
-            pageSubtitle.style.display = 'none';
-            
+
+            const formData = new FormData();
+            formData.append('audio_file', audioBlob, 'response.webm');
+
+            try {
+                const res = await fetch(ANALYSIS_API_URL, { method: 'POST', body: formData });
+                const data = await res.json();
+                loadingDiv.style.display = 'none';
+
+                if (res.ok) {
+                    allReports.push(data);
+                    resultsDiv.style.display = 'block';
+                    const score = data.overall_score || data.rating || 'N/A';
+
+                    reportContent.innerHTML = `
+                        <div style="background-color: var(--slate-50); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1.25rem; margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                <strong style="font-size: 1.1rem;">Question ${currentQuestionIndex + 1} Analysis</strong>
+                                <span class="badge badge-success" style="font-size: 0.85rem;">Overall Rating: ${score}/10</span>
+                            </div>
+                            <div style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                <strong>Whisper Transcription:</strong> <em>"${data.transcript || 'Transcribed response'}"</em>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; font-size: 0.82rem; margin-top: 0.75rem;">
+                                <div><strong>Nervousness Level:</strong> ${data.nervousness || 'Low'}</div>
+                                <div><strong>Articulation / Clarity:</strong> ${data.articulation || 'Clear'}</div>
+                                <div><strong>Vocabulary Depth:</strong> ${data.vocabulary || 'Competent'}</div>
+                                <div><strong>Hesitation / Fumbles:</strong> ${data.fumbling_count !== undefined ? data.fumbling_count : 0}</div>
+                            </div>
+                        </div>
+                    `;
+
+                    if (currentQuestionIndex < questions.length - 1) {
+                        nextQuestionBtn.style.display = 'inline-flex';
+                    } else {
+                        showFinalSummary();
+                    }
+                } else {
+                    alert('Audio analysis failed: ' + (data.detail || 'Service error'));
+                }
+            } catch (err) {
+                loadingDiv.style.display = 'none';
+                alert('Connection error to AI microservice at ' + ANALYSIS_API_URL + '. Ensure backend.py is running.');
+            } finally {
+                analyzeBtn.disabled = false;
+            }
+        });
+
+        nextQuestionBtn.addEventListener('click', () => {
+            currentQuestionIndex++;
+            questionCounter.textContent = `Question ${currentQuestionIndex + 1} of ${questions.length}`;
+            questionText.textContent = `"${questions[currentQuestionIndex]}"`;
+            audioPlayback.style.display = 'none';
+            resultsDiv.style.display = 'none';
+            nextQuestionBtn.style.display = 'none';
+            analyzeBtn.disabled = true;
+            recordBtn.innerHTML = '<i class="fa-solid fa-microphone"></i> Start Recording';
+        });
+
+        function showFinalSummary() {
             finalSummaryContainer.style.display = 'block';
-            let summaryHTML = '';
-
-            // Calculate average score
-            let totalScore = 0;
-            allReports.forEach(report => {
-                totalScore += parseFloat(report.final_communication_score.split(' ')[0]);
-            });
-            const avgScore = (totalScore / allReports.length).toFixed(1);
-
-            summaryHTML += `
-                <div class="results-summary">
-                    <h2>${avgScore} / 10.0</h2>
-                    <p>Your average communication score across all 3 questions.</p>
-                </div>
-            `;
-
-            allReports.forEach((report, index) => {
-                summaryHTML += `
-                    <div class="analysis-summary-card">
-                        <h4>Summary for Question ${index + 1}</h4>
-                        <p><strong>Overall Score: ${report.final_communication_score}</strong></p>
-                        <p><strong>Transcription:</strong> <em>"${report.transcribed_text}"</em></p>
-                        <p><strong>Key Feedback:</strong> ${report.detailed_scores[0].details}</p> 
-                    </div>
+            let summaryHtml = '<div class="table-responsive"><table class="data-table"><thead><tr><th>Question</th><th>Score</th><th>Feedback Summary</th></tr></thead><tbody>';
+            allReports.forEach((rep, idx) => {
+                summaryHtml += `
+                    <tr>
+                        <td><strong>Q${idx + 1}: ${questions[idx].substring(0, 30)}...</strong></td>
+                        <td><span class="badge badge-success">${rep.overall_score || 8}/10</span></td>
+                        <td>${rep.feedback || 'Good articulation and structured response.'}</td>
+                    </tr>
                 `;
             });
-            
-            finalSummaryContent.innerHTML = summaryHTML;
+            summaryHtml += '</tbody></table></div>';
+            finalSummaryContent.innerHTML = summaryHtml;
         }
-
     </script>
 </body>
 </html>

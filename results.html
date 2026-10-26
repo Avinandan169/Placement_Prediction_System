@@ -3,108 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your Results - AI Placement Predictor</title>
+    <title>Job Matching & Roadmap - Placement Prediction System</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">
-            <span>AI</span> Placement Predictor
-        </div>
-        <ul class="nav-links">
-            <li><a href="index.html">Home</a></li>
-        </ul>
-        <div>
-            <span id="welcome-email" style="margin-right: 1rem;">Welcome!</span>
-            <a href="#" id="logout-btn" class="btn">Logout</a>
-        </div>
-    </nav>
+    <div class="app-shell">
+        <aside class="app-sidebar" id="sidebar-container"></aside>
 
-    <div class="dashboard-layout">
-        <aside class="sidebar">
-            <ul class="nav-links">
-                <li><a href="dashboard.html">Profile</a></li>
-                <li><a href="profile.html">Resume Upload</a></li>
-                <li><a href="soft-skills.html">Soft Skills</a></li>
-                <li><a href="results.html" class="active">Results & Roadmap</a></li>
-                <li><a href="test.html">Technical Test</a></li>
-                <li><a href="conversation.html"><i class="fas fa-brain"></i>AI Support</a></li>
-            </ul>
-        </aside>
+        <div class="app-main">
+            <header class="app-topbar" id="topbar-container"></header>
 
-        <main class="main-content">
-            <div class="results-card">
-                <h2>Your Job Role Predictions</h2>
-                <p>Based on your resume, here are the top roles you're suited for.</p>
-                
-                <div id="results-container">
+            <main class="app-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Semantic Career Profile & Job Matching</h1>
+                        <p class="page-description">Sentence Transformers (all-MiniLM-L6-v2) cosine similarity matching and tiered competency gap analysis.</p>
                     </div>
-
-                <div class="test-button-container">
-                    <h3>Ready to test your skills?</h3>
-                    <p>Take a technical test based on the skills found in your resume.</p>
-                    <a href="test.html" class="btn btn-gradient">Take Technical Test</a>
+                    <div class="page-actions">
+                        <a href="test.html" class="btn btn-primary btn-sm">
+                            <i class="fa-solid fa-vial"></i> Take Technical Quiz
+                        </a>
+                        <a href="planner.html" class="btn btn-outline btn-sm">
+                            <i class="fa-solid fa-route"></i> Open A* Planner
+                        </a>
+                    </div>
                 </div>
-            </div>
-        </main>
+
+                <!-- Guidance Alert -->
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-circle-nodes" style="font-size: 1.25rem;"></i>
+                    <div>
+                        <strong>NLP Vector Matching Notice:</strong> Job recommendations represent semantic cosine similarity 
+                        between your extracted resume profile and curated industry occupational vectors. 
+                        <strong>Similarity scores indicate resume alignment and skill overlap, not a guarantee of employment.</strong>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-briefcase text-indigo-500"></i> Top Matching Career Profiles
+                        </div>
+                        <span class="badge badge-primary" id="rec-count-badge">Loaded Profiles</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="results-container">
+                            <div class="empty-state" id="empty-results">
+                                <div class="empty-state-icon"><i class="fa-solid fa-file-invoice"></i></div>
+                                <div class="empty-state-title">No Recommendations Available</div>
+                                <div class="empty-state-desc">Upload your resume in the Resume Analysis workspace to extract skills and compute occupational embeddings.</div>
+                                <a href="profile.html" class="btn btn-primary btn-sm">Upload Resume</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
 
+    <script src="config.js"></script>
+    <script src="nav.js"></script>
     <script>
-        // --- Helper Function ---
-        function getRedirectPath(targetFile) {
-            const currentPath = window.location.pathname;
-            const dirPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
-            return dirPath + '/' + targetFile;
-        }
-
-        // --- 1. Check Login & Handle Logout ---
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
-            alert('You must be logged in to view this page.');
-            window.location.href = getRedirectPath('login.html');
-        }
-        
-        document.getElementById('logout-btn').addEventListener('click', (e) => {
-            e.preventDefault();
-            localStorage.removeItem('accessToken');
-            alert('You have been logged out.');
-            window.location.href = getRedirectPath('login.html');
-        });
-
-        // --- 2. Load and Display Results ---
         document.addEventListener('DOMContentLoaded', () => {
-            const resultsContainer = document.getElementById('results-container');
-            const predictionsString = localStorage.getItem('jobRecommendations');
-            
-            if (!predictionsString) {
-                resultsContainer.innerHTML = '<p>No predictions found. Please <a href="profile.html">upload your resume</a> first.</p>';
+            const container = document.getElementById('results-container');
+            const emptyBox = document.getElementById('empty-results');
+            const countBadge = document.getElementById('rec-count-badge');
+            const stored = localStorage.getItem('jobRecommendations');
+
+            if (!stored) {
+                if (emptyBox) emptyBox.style.display = 'block';
                 return;
             }
 
             try {
-                const predictions = JSON.parse(predictionsString);
-                
-                if (predictions.length === 0) {
-                     resultsContainer.innerHTML = '<p>Could not determine job roles from your resume.</p>';
-                     return;
+                const recs = JSON.parse(stored);
+                if (!Array.isArray(recs) || recs.length === 0) {
+                    if (emptyBox) emptyBox.style.display = 'block';
+                    return;
                 }
 
-                // Sort by match_score, highest first
-                predictions.sort((a, b) => b.match_score - a.match_score);
+                if (emptyBox) emptyBox.style.display = 'none';
+                countBadge.textContent = `${recs.length} Job Profiles Matched`;
 
-                predictions.forEach(role => {
-                    const roleElement = document.createElement('div');
-                    roleElement.classList.add('role-item');
-                    roleElement.innerHTML = `
-                        <span class="role-name">${role.job_profile}</span>
-                        <span class="role-percentile">${(role.match_score * 100).toFixed(0)}%</span>
+                recs.sort((a, b) => b.match_score - a.match_score);
+
+                let html = '';
+                recs.forEach(r => {
+                    const pct = Math.round(r.match_score * 100);
+                    const gap = r.skill_gap || {};
+                    const basicMissing = gap.basic_missing || [];
+                    const interMissing = gap.intermediate_missing || [];
+                    const advMissing = gap.advanced_missing || [];
+
+                    let basicTags = basicMissing.map(s => `<span class="skill-tag missing">${s}</span>`).join(' ') || '<em style="color:var(--text-muted); font-size:0.75rem;">None</em>';
+                    let interTags = interMissing.map(s => `<span class="skill-tag missing">${s}</span>`).join(' ') || '<em style="color:var(--text-muted); font-size:0.75rem;">None</em>';
+                    let advTags = advMissing.map(s => `<span class="skill-tag missing">${s}</span>`).join(' ') || '<em style="color:var(--text-muted); font-size:0.75rem;">None</em>';
+
+                    html += `
+                        <div class="job-card">
+                            <div class="job-card-header">
+                                <div>
+                                    <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">${r.job_profile}</div>
+                                    <div style="font-size: 0.78rem; color: var(--text-secondary);">Vector Similarity Score: <strong>${pct}%</strong></div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <span class="badge ${pct >= 70 ? 'badge-success' : 'badge-primary'}" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">${pct}% Match</span>
+                                    <a href="planner.html" class="btn btn-outline btn-sm">
+                                        <i class="fa-solid fa-route"></i> Plan Path
+                                    </a>
+                                </div>
+                            </div>
+
+                            <div class="metric-bar-container" style="margin-bottom: 1rem;">
+                                <div class="metric-bar-fill" style="width: ${pct}%; background-color: ${pct >= 70 ? 'var(--success)' : 'var(--primary)'};"></div>
+                            </div>
+
+                            <div style="background-color: var(--slate-50); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.85rem; font-size: 0.82rem;">
+                                <div style="font-weight: 600; margin-bottom: 0.4rem; color: var(--text-secondary);"><i class="fa-solid fa-triangle-exclamation" style="color: var(--amber-500); margin-right: 4px;"></i> Competency Gap Breakdown:</div>
+                                <div style="margin-bottom: 0.3rem;"><strong>Basic Missing Skills:</strong> ${basicTags}</div>
+                                <div style="margin-bottom: 0.3rem;"><strong>Intermediate Missing:</strong> ${interTags}</div>
+                                <div><strong>Advanced Missing:</strong> ${advTags}</div>
+                            </div>
+                        </div>
                     `;
-                    resultsContainer.appendChild(roleElement);
                 });
-            } catch (error) {
-                console.error('Error parsing predictions:', error);
-                resultsContainer.innerHTML = '<p>An error occurred while loading your results.</p>';
+
+                container.innerHTML = html;
+
+            } catch (err) {
+                console.error("Render results error:", err);
             }
         });
     </script>

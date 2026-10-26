@@ -78,11 +78,20 @@
                 const data = await response.json().catch(() => ({}));
 
                 if (response.ok) {
+                    // Ensure stale state from previous accounts is wiped clean
+                    localStorage.clear();
+                    sessionStorage.clear();
                     localStorage.setItem('accessToken', data.access_token);
+                    localStorage.setItem('token', data.access_token);
                     
-                    // 1. Parse the token to find the role
+                    // 1. Parse the token to find the role and email
                     const tokenData = parseJwt(data.access_token);
+                    if (tokenData && tokenData.sub) {
+                        localStorage.setItem('currentUserEmail', tokenData.sub);
+                        localStorage.setItem('userEmail', tokenData.sub);
+                    }
                     const userRole = tokenData ? tokenData.role : 'student'; // Default to student
+                    localStorage.setItem('userRole', userRole);
 
                     alert('Login successful! Redirecting...');
                     

@@ -8,46 +8,39 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">
-            <span>AI</span> Placement Predictor
-        </div>
-        <ul class="nav-links">
-            <li><a href="index.html">Home</a></li>
-        </ul>
-        <div>
-            <span id="welcome-email" style="margin-right: 1rem;">Welcome!</span>
-            <a href="#" id="logout-btn" class="btn">Logout</a>
-        </div>
-    </nav>
+    <div class="app-shell">
+        <aside class="app-sidebar" id="sidebar-container"></aside>
 
-    <div class="dashboard-layout">
-        <aside class="sidebar">
-            <ul class="nav-links">
-                <li><a href="dashboard.html"><i class="fas fa-user-circle"></i>Profile</a></li>
-                <li><a href="profile.html"><i class="fas fa-file-arrow-up"></i>Resume Upload</a></li>
-                <li><a href="soft-skills.html"><i class="fas fa-comment"></i>Soft Skills</a></li>
-                <li><a href="results.html"><i class="fas fa-poll"></i>Results & Roadmap</a></li>
-                <li><a href="test.html" class="active"><i class="fas fa-vial"></i>Technical Test</a></li>
-                <li><a href="conversation.html"><i class="fas fa-brain"></i>AI Support</a></li>
-            </ul>
-        </aside>
+        <div class="app-main">
+            <header class="app-topbar" id="topbar-container"></header>
 
-        <main class="main-content">
-            <div id="quiz-loading" class="loading-quiz">
-                <p>Generating your personalized technical test based on your resume skills...</p>
-                <p>This may take a moment.</p>
-            </div>
-
-            <div id="quiz-container" class="quiz-card" style="display: none;">
+            <main class="app-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Technical Skill Competency Quiz</h1>
+                        <p class="page-description">AI-generated technical assessments derived dynamically from your extracted skill profile.</p>
+                    </div>
                 </div>
 
-            <div id="results-container" class="quiz-card" style="display: none;">
+                <div class="card">
+                    <div class="card-body">
+                        <div id="quiz-loading" class="loading-quiz" style="text-align: center; padding: 2.5rem 1rem;">
+                            <i class="fa-solid fa-spinner fa-spin" style="font-size: 2.5rem; color: var(--primary); margin-bottom: 1rem;"></i>
+                            <h3 style="font-size: 1.15rem; font-weight: 600;">Generating Your Personalized Technical Test...</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.35rem;">Synthesizing targeted questions from your resume skills using Google Gemini.</p>
+                        </div>
+
+                        <div id="quiz-container" class="quiz-card" style="display: none;"></div>
+
+                        <div id="results-container" class="quiz-card" style="display: none;"></div>
+                    </div>
                 </div>
-        </main>
+            </main>
+        </div>
     </div>
 
     <script src="config.js"></script>
+    <script src="nav.js"></script>
     <script>
         // --- Full Test Page Logic ---
         
@@ -86,17 +79,47 @@
             return targetFile;
         }
 
+        // --- Helper to parse JWT token ---
+        function parseJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                return null;
+            }
+        }
+
         // --- 1. Check Login & Handle Logout ---
         if (!token) {
             alert('You must be logged in to view this page.');
             window.location.href = 'login.html';
         }
+
+        const tokenData = token ? parseJwt(token) : null;
+        if (!tokenData || !tokenData.sub) {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = 'login.html';
+        }
+
+        const savedUserEmail = localStorage.getItem('currentUserEmail');
+        if (savedUserEmail && savedUserEmail !== tokenData.sub) {
+            localStorage.clear();
+            sessionStorage.clear();
+            localStorage.setItem('accessToken', token);
+            localStorage.setItem('currentUserEmail', tokenData.sub);
+        } else {
+            localStorage.setItem('currentUserEmail', tokenData.sub);
+        }
         
         document.getElementById('logout-btn').addEventListener('click', (e) => {
             e.preventDefault();
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('jobRecommendations');
-            localStorage.removeItem('skillsData');
+            localStorage.clear();
+            sessionStorage.clear();
             alert('You have been logged out.');
             window.location.href = 'login.html';
         });

@@ -1,0 +1,136 @@
+{
+  "name": "Krooz Campus Recruitment Dataset",
+  "source": "https://huggingface.co/datasets/Krooz/Campus_Recruitment_CSV",
+  "license": "CC0-1.0 (Public Domain)",
+  "notes": "Benchmark dataset from Hugging Face for placement prediction research.",
+  "ingestion_timestamp": "2026-10-26T06:53:01.055179+00:00",
+  "row_count": 10000,
+  "column_count": 11,
+  "columns": [
+    "CGPA",
+    "Internships",
+    "Projects",
+    "Workshops/Certifications",
+    "AptitudeTestScore",
+    "SoftSkillsRating",
+    "ExtracurricularActivities",
+    "PlacementTraining",
+    "SSC_Marks",
+    "HSC_Marks",
+    "PlacementStatus"
+  ],
+  "sha256": "a17403c05174f02ede5eb270c28cb5807d9da5cd076869a5bc70971fbbab2145",
+  "quality_report": {
+    "total_rows": 10000,
+    "total_columns": 11,
+    "duplicate_rows": 72,
+    "duplicate_percentage": 0.72,
+    "missing_values": {
+      "CGPA": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "Internships": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "Projects": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "Workshops/Certifications": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "AptitudeTestScore": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "SoftSkillsRating": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "ExtracurricularActivities": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "PlacementTraining": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "SSC_Marks": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "HSC_Marks": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "PlacementStatus": {
+        "count": 0,
+        "percentage": 0.0
+      }
+    },
+    "target_distribution": {
+      "NotPlaced": {
+        "count": 5803,
+        "percentage": 58.03
+      },
+      "Placed": {
+        "count": 4197,
+        "percentage": 41.97
+      }
+    },
+    "numeric_ranges": {
+      "CGPA": {
+        "min": 6.5,
+        "max": 9.1,
+        "mean": 7.7,
+        "median": 7.7
+      },
+      "Internships": {
+        "min": 0.0,
+        "max": 2.0,
+        "mean": 1.05,
+        "median": 1.0
+      },
+      "Projects": {
+        "min": 0.0,
+        "max": 3.0,
+        "mean": 2.03,
+        "median": 2.0
+      },
+      "Workshops/Certifications": {
+        "min": 0.0,
+        "max": 3.0,
+        "mean": 1.01,
+        "median": 1.0
+      },
+      "AptitudeTestScore": {
+        "min": 60.0,
+        "max": 90.0,
+        "mean": 79.45,
+        "median": 80.0
+      },
+      "SoftSkillsRating": {
+        "min": 3.0,
+        "max": 4.8,
+        "mean": 4.32,
+        "median": 4.4
+      },
+      "SSC_Marks": {
+        "min": 55.0,
+        "max": 90.0,
+        "mean": 69.16,
+        "median": 70.0
+      },
+      "HSC_Marks": {
+        "min": 57.0,
+        "max": 88.0,
+        "mean": 74.5,
+        "median": 73.0
+      }
+    },
+    "has_class_imbalance": false
+  }
+}

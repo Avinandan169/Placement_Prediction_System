@@ -1,0 +1,7 @@
+{
+  "state": "completed",
+  "progress": 100,
+  "message": "Training complete. Top model 'Logistic Regression' saved.",
+  "error": null,
+  "updated_at": "2026-10-26T06:55:30.405532+00:00"
+}

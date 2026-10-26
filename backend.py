@@ -52,10 +52,15 @@ except ImportError as e:
     print(f"Notice: EasyOCR/pdf2image not available. Text-based PDF extraction via pypdf will be used: {e}")
 
 try:
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types
+    from google.genai.errors import APIError, ClientError
 except ImportError as e:
     genai = None
-    print(f"Warning: google.generativeai could not be imported: {e}")
+    types = None
+    APIError = None
+    ClientError = None
+    print(f"Warning: google.genai could not be imported: {e}")
 
 try:
     from communication_analyzer import CommunicationAnalyzer
@@ -71,11 +76,15 @@ except ImportError as e:
 GOOGLE_API_KEY = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 NGROK_AUTHTOKEN = os.getenv("NGROK_AUTHTOKEN")
 
-# Configure Gemini
-if GOOGLE_API_KEY:
-   genai.configure(api_key=GOOGLE_API_KEY)
+# Configure Gemini Client
+gemini_client = None
+if GOOGLE_API_KEY and genai is not None:
+    try:
+        gemini_client = genai.Client(api_key=GOOGLE_API_KEY)
+    except Exception as e:
+        print(f"WARNING: Failed to initialize Gemini client: {e}")
 else:
-   print("WARNING: GEMINI_API_KEY is not configured. Resume analysis will be unavailable.")
+    print("WARNING: GEMINI_API_KEY is not configured. Resume analysis will be unavailable.")
 
 # Configure Ngrok only when explicitly enabled.
 if ENABLE_NGROK:
@@ -230,17 +239,11 @@ def parse_resume_to_json(resume_text: str) -> dict:
         },
     }
 
-    try:
-        model = genai.GenerativeModel(
-            'gemini-2.5-flash',
-            generation_config=genai.GenerationConfig(
-                response_mime_type="application/json",
-                response_schema=json_schema
-            )
+    if not GOOGLE_API_KEY or gemini_client is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Resume analysis is unavailable until GEMINI_API_KEY is configured."
         )
-    except Exception as e:
-        print(f"Error initializing Gemini model: {e}")
-        raise HTTPException(status_code=500, detail=f"Gemini model init failed: {e}")
 
     prompt = f"""
     You are an expert resume parser. Read the following resume text, which was extracted by OCR,
@@ -259,21 +262,68 @@ def parse_resume_to_json(resume_text: str) -> dict:
     ---
     """
 
-    max_retries = 3
-    response = None # Initialize response to avoid reference before assignment
-    for attempt in range(max_retries):
-        try:
-            response = model.generate_content(prompt)
-            parsed_json = json.loads(response.parts[0].text)
-            return parsed_json
-        except Exception as e:
-            print(f"Error during Gemini API call (Attempt {attempt + 1}/{max_retries}): {e}")
-            if response and hasattr(response, 'parts') and response.parts:
-                print("Full Gemini Response Text:", response.parts[0].text)
-            time.sleep(1)
+    primary_model = os.getenv("GEMINI_MODEL") or "gemini-2.5-flash"
+    candidates = [primary_model, "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-3-flash-preview"]
+    models_to_try = list(dict.fromkeys(candidates))
 
-    print("Failed to parse resume after all retries.")
-    raise HTTPException(status_code=500, detail="Gemini parsing failed after multiple retries.")
+    last_error = None
+    last_code = 500
+    for model_name in models_to_try:
+        try:
+            print(f"Parsing resume text with Gemini model '{model_name}'...")
+            response = gemini_client.models.generate_content(
+                model=model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=json_schema,
+                    temperature=0.1
+                )
+            )
+            raw_text = response.text if hasattr(response, "text") and response.text else ""
+            if not raw_text and hasattr(response, "parts") and response.parts:
+                raw_text = response.parts[0].text
+            
+            parsed_json = json.loads(raw_text)
+            print(f"Resume parsed successfully with '{model_name}'.")
+            return parsed_json
+
+        except (APIError, ClientError) as api_err:
+            code = getattr(api_err, "code", 500)
+            msg = getattr(api_err, "message", str(api_err))
+            print(f"Gemini API error during resume parsing with '{model_name}': [{code}] {msg}")
+            last_error = f"HTTP {code}: {msg}"
+            last_code = code
+            if model_name != models_to_try[-1] and (code in (429, 503) or "demand" in str(msg).lower()):
+                print(f"Notice: Model '{model_name}' returned [{code}]. Attempting fallback model...")
+                continue
+            if code == 429:
+                raise HTTPException(
+                    status_code=429,
+                    detail=f"Gemini API quota exceeded for resume parsing: {msg}"
+                )
+            if code == 503 and model_name == models_to_try[-1]:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"Gemini service temporarily unavailable: {msg}"
+                )
+            raise HTTPException(
+                status_code=code if 400 <= code <= 599 else 500,
+                detail=f"Gemini API error during resume parsing: {msg}"
+            )
+        except json.JSONDecodeError as json_err:
+            print(f"Failed to parse Gemini response as JSON: {json_err}")
+            last_error = str(json_err)
+            last_code = 502
+            continue
+        except Exception as e:
+            print(f"Unexpected error during resume parsing with '{model_name}': {e}")
+            last_error = str(e)
+            last_code = 500
+            continue
+
+    print(f"Failed to parse resume after all models: {last_error}")
+    raise HTTPException(status_code=last_code, detail=f"Failed to parse resume with Gemini: {last_error}")
 
 
 def convert_gemini_to_recommender_format(gemini_data: dict) -> dict:
@@ -461,7 +511,8 @@ async def analyze_audio(file: UploadFile = File(...)):
         report = analyzer.get_final_analysis(temp_audio_path)
 
         if "error" in report:
-            raise HTTPException(status_code=500, detail=report["error"])
+            status_code = int(report.get("status_code") or 500)
+            raise HTTPException(status_code=status_code, detail=report["error"])
 
         print("Analysis complete.")
         return {

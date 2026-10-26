@@ -232,52 +232,44 @@
     </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">
-            <span>AI</span> Placement Predictor
-        </div>
-        <ul class="nav-links">
-            <li><a href="index.html">Home</a></li>
-        </ul>
-        <div>
-            <span id="welcome-email" style="margin-right: 1rem;">Welcome!</span>
-            <a href="#" id="logout-btn" class="btn">Logout</a>
-        </div>
-    </nav>
+    <div class="app-shell">
+        <aside class="app-sidebar" id="sidebar-container"></aside>
 
-    <div class="dashboard-layout">
-        <aside class="sidebar">
-            <ul class="nav-links">
-                <li><a href="dashboard.html"><i class="fas fa-user-circle"></i>Profile</a></li>
-                <li><a href="profile.html"><i class="fas fa-file-arrow-up"></i>Resume Upload</a></li>
-                <li><a href="soft-skills.html"><i class="fas fa-comment"></i>Soft Skills</a></li>
-                <li><a href="results.html"><i class="fas fa-poll"></i>Results & Roadmap</a></li>
-                <li><a href="test.html"><i class="fas fa-vial"></i>Technical Test</a></li>
-                <li><a href="conversation.html" class="active"><i class="fas fa-brain"></i>AI Support</a></li>
-            </ul>
-        </aside>
+        <div class="app-main">
+            <header class="app-topbar" id="topbar-container"></header>
 
-        <main class="main-content">
-            <div class="chat-container">
-                <div class="chat-box" id="chatBox">
-                    <div class="chat-message bot">
-                        <div class="message-content">
-                            <strong class="bot-label">Bot:</strong>
-                            <div class="bot-body">
-                                <p>Hello! I'm your AI Placement Assistant. You can ask me questions about your profile or general career advice.</p>
-                            </div>
-                        </div>
+            <main class="app-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">AI Placement & Career Assistant</h1>
+                        <p class="page-description">LLM-powered interview advising and placement guidance contextualized with your academic profile.</p>
                     </div>
                 </div>
-                <form id="chatForm">
-                    <input type="text" id="userInput" autocomplete="off" placeholder="Ask me anything..." required />
-                    <button type="submit" id="send-btn">Send</button>
-                </form>
-            </div>
-        </main>
+
+                <div class="card" style="margin-bottom: 0;">
+                    <div class="chat-container">
+                        <div class="chat-box" id="chatBox">
+                            <div class="chat-message bot">
+                                <div class="message-content">
+                                    <strong class="bot-label">AI Assistant:</strong>
+                                    <div class="bot-body">
+                                        <p>Hello! I'm your AI Placement Assistant. You can ask me questions about your profile, interview preparation, or general career advice.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <form id="chatForm">
+                            <input type="text" id="userInput" class="form-control" autocomplete="off" placeholder="Ask about interview questions, skills, or placement advice..." required />
+                            <button type="submit" id="send-btn" class="btn btn-primary">Send</button>
+                        </form>
+                    </div>
+                </div>
+            </main>
+        </div>
     </div>
 
     <script src="config.js"></script>
+    <script src="nav.js"></script>
     <script>
         // --- NEW: Live Chatbot Logic ---
         const chatBox = document.getElementById('chatBox');
@@ -298,6 +290,7 @@
         document.getElementById('logout-btn').addEventListener('click', (e) => {
             e.preventDefault();
             localStorage.clear(); // Clear everything on logout
+            sessionStorage.clear();
             alert('You have been logged out.');
             window.location.href = 'login.html';
         });

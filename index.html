@@ -3,37 +3,182 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Placement Predictor</title>
+    <title>Placement Prediction System — Predictive Analytics & AI Platform</title>
     <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
+<body style="background-color: #ffffff;">
 
-    <nav class="navbar">
-        <div class="logo">
-            <span>AI</span> Placement Predictor
-        </div>
-        <ul class="nav-links">
-            <li><a href="index.html" aria-current="page">Home</a></li>
-            <li><a href="about.html">About</a></li>
-            <li><a href="contact.html">Contact</a></li>
-        </ul>
-        <a href="login.html" class="btn">Login</a>
-    </nav>
+    <!-- Top Navigation Bar -->
+    <header style="border-bottom: 1px solid var(--border-subtle); background: #ffffff; position: sticky; top: 0; z-index: 100;">
+        <div style="max-width: 1200px; margin: 0 auto; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div style="width: 36px; height: 36px; background: linear-gradient(135deg, var(--indigo-500), #818cf8); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: #ffffff; font-size: 1.1rem;">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <span style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary); letter-spacing: -0.02em;">PredictPlacement</span>
+                    <span style="display: block; font-size: 0.72rem; color: var(--text-muted); font-weight: 500;">CSE3141 & CSE3121 Academic Platform</span>
+                </div>
+            </div>
 
-    <header class="hero">
-        <h1>AI Placement Predictor</h1>
-        <p>Empowering Students with Predictive Career Insights</p>
-        <div class="cta-buttons">
-            <a href="register.html?role=student" class="btn">I am a Student</a>
-            <a href="register.html?role=officer" class="btn">I am a Placement Officer</a>
+            <nav style="display: flex; align-items: center; gap: 1.5rem;">
+                <a href="dashboard.html" style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">Dashboard</a>
+                <a href="dataset.html" style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">Dataset</a>
+                <a href="models.html" style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">Models</a>
+                <a href="predict.html" style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">Live Prediction</a>
+                <a href="readiness.html" style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">Fuzzy Logic</a>
+                <a href="planner.html" style="font-weight: 500; font-size: 0.9rem; color: var(--text-secondary);">A* Planner</a>
+                <a href="login.html" class="btn btn-outline btn-sm">Sign In</a>
+                <a href="dashboard.html" class="btn btn-primary btn-sm">Open Platform &rarr;</a>
+            </nav>
         </div>
     </header>
 
-    <section class="features">
-        <div class="container">
-            <h2>Powerful Features for Career Success</h2>
+    <!-- Hero Section -->
+    <section style="background: radial-gradient(circle at 50% 10%, rgba(99, 102, 241, 0.08) 0%, rgba(255, 255, 255, 0) 70%); padding: 5rem 1.5rem 4rem 1.5rem; text-align: center;">
+        <div style="max-width: 900px; margin: 0 auto;">
+            <div style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.35rem 0.85rem; background: var(--indigo-50); border: 1px solid var(--indigo-100); border-radius: var(--radius-full); font-size: 0.8rem; font-weight: 600; color: var(--primary); margin-bottom: 1.5rem;">
+                <i class="fa-solid fa-award"></i> Rigorous Academic Machine Learning & Soft Computing
             </div>
+
+            <h1 style="font-size: 3rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 1.25rem;">
+                Next-Generation Student Placement Prediction & Career Planning
+            </h1>
+
+            <p style="font-size: 1.15rem; color: var(--text-secondary); line-height: 1.6; max-width: 720px; margin: 0 auto 2.5rem auto;">
+                An end-to-end predictive analytics platform trained on 10,000 recruitment benchmark records, 
+                featuring reproducible classification pipelines, Mamdani fuzzy readiness inference, and A* heuristic learning path optimization.
+            </p>
+
+            <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                <a href="predict.html" class="btn btn-primary btn-lg" style="box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Try Live Placement Prediction
+                </a>
+                <a href="dashboard.html" class="btn btn-secondary btn-lg">
+                    <i class="fa-solid fa-chart-pie"></i> Explore Analytics Dashboard
+                </a>
+                <a href="readiness.html" class="btn btn-outline btn-lg">
+                    <i class="fa-solid fa-brain"></i> Fuzzy Logic Readiness
+                </a>
+            </div>
+        </div>
     </section>
+
+    <!-- Academic Dual Pillars Section -->
+    <section style="padding: 4rem 1.5rem; background-color: var(--slate-50); border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle);">
+        <div style="max-width: 1200px; margin: 0 auto;">
+            <div style="text-align: center; margin-bottom: 3rem;">
+                <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--primary); letter-spacing: 0.08em;">Curricular Alignment</span>
+                <h2 style="font-size: 2rem; font-weight: 700; color: var(--text-primary); margin-top: 0.25rem;">Engineered for Academic Excellence</h2>
+                <p style="color: var(--text-secondary); max-width: 600px; margin: 0.5rem auto 0 auto;">Dual-course integration rigorously mapping software architecture to course outcomes.</p>
+            </div>
+
+            <div class="grid-2">
+                <!-- Pillar 1 -->
+                <div class="card" style="margin-bottom: 0; border-top: 4px solid var(--primary);">
+                    <div class="card-body" style="padding: 2rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <div style="width: 42px; height: 42px; background: var(--indigo-50); color: var(--primary); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                                <i class="fa-solid fa-chart-column"></i>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 1.2rem; font-weight: 700;">CSE3141 — Predictive Analytics</h3>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Empirical Data Science & Supervised Machine Learning</div>
+                            </div>
+                        </div>
+
+                        <ul style="padding-left: 1.25rem; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.8;">
+                            <li><strong>Legitimate Dataset Provenance:</strong> 10,000 real records from Hugging Face (<code>Krooz/Campus_Recruitment_CSV</code>) with complete SHA-256 integrity audits.</li>
+                            <li><strong>No Data Leakage:</strong> Strict ColumnTransformer pipelines fitting encoders and standard scalers on training splits only.</li>
+                            <li><strong>Fair Benchmark Comparison:</strong> Compares Dummy Baseline, Logistic Regression, Decision Tree, Random Forest, and Gradient Boosting.</li>
+                            <li><strong>Evaluation Rigor:</strong> Stratified 5-Fold Cross-Validation, GridSearchCV tuning, ROC-AUC, and Confusion Matrix analytics.</li>
+                            <li><strong>Explainability:</strong> Permutation importance and directional local feature diagnostics.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Pillar 2 -->
+                <div class="card" style="margin-bottom: 0; border-top: 4px solid var(--emerald-500);">
+                    <div class="card-body" style="padding: 2rem;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <div style="width: 42px; height: 42px; background: var(--emerald-50); color: var(--success); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                                <i class="fa-solid fa-brain"></i>
+                            </div>
+                            <div>
+                                <h3 style="font-size: 1.2rem; font-weight: 700;">CSE3121 — AI & Soft Computing</h3>
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Heuristic Graph Search & Fuzzy Inference Systems</div>
+                            </div>
+                        </div>
+
+                        <ul style="padding-left: 1.25rem; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.8;">
+                            <li><strong>Mamdani Fuzzy Inference:</strong> Triangular and trapezoidal membership functions across CGPA, Aptitude, Soft Skills, and Experience.</li>
+                            <li><strong>Rule Base & Defuzzification:</strong> 16 expert rules, min conjunction, max aggregation, and Centroid defuzzification (\(z^*\)).</li>
+                            <li><strong>Transparent Explainability:</strong> Full \(\alpha\)-cut tracing showing active rules and reasoning steps.</li>
+                            <li><strong>A* Heuristic Search:</strong> Graph-based skill development planner calculating \(f(n) = g(n) + h(n)\) via priority queue.</li>
+                            <li><strong>Admissible Heuristic:</strong> Prerequisite closure effort lower bound guarantees discovering the optimal shortest path.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Platform Features Grid -->
+    <section style="padding: 4.5rem 1.5rem; max-width: 1200px; margin: 0 auto;">
+        <div style="text-align: center; margin-bottom: 3rem;">
+            <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--primary); letter-spacing: 0.08em;">Integrated Architecture</span>
+            <h2 style="font-size: 2rem; font-weight: 700; color: var(--text-primary); margin-top: 0.25rem;">Full-Spectrum Career Preparation Suite</h2>
+        </div>
+
+        <div class="grid-3">
+            <div class="card" style="margin-bottom: 0;">
+                <div class="card-body">
+                    <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--indigo-50); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; margin-bottom: 1rem;">
+                        <i class="fa-solid fa-file-pdf"></i>
+                    </div>
+                    <h4 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 0.5rem;">Resume Analysis</h4>
+                    <p style="font-size: 0.84rem; color: var(--text-secondary);">PyPDF and EasyOCR document parsing with Google Gemini extraction and review-before-saving controls.</p>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 0;">
+                <div class="card-body">
+                    <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--emerald-50); color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; margin-bottom: 1rem;">
+                        <i class="fa-solid fa-briefcase"></i>
+                    </div>
+                    <h4 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 0.5rem;">Semantic Job Matching</h4>
+                    <p style="font-size: 0.84rem; color: var(--text-secondary);">Sentence Transformers (<code>all-MiniLM-L6-v2</code>) cosine similarity vector search with tiered skill gap diagnostics.</p>
+                </div>
+            </div>
+
+            <div class="card" style="margin-bottom: 0;">
+                <div class="card-body">
+                    <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--amber-50); color: var(--warning); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; margin-bottom: 1rem;">
+                        <i class="fa-solid fa-microphone"></i>
+                    </div>
+                    <h4 style="font-size: 1.05rem; font-weight: 600; margin-bottom: 0.5rem;">Voice Communication</h4>
+                    <p style="font-size: 0.84rem; color: var(--text-secondary);">OpenAI Whisper audio transcription combined with Parselmouth acoustic prosody and Gemini vocabulary evaluation.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="background-color: var(--slate-900); color: var(--slate-400); padding: 3rem 1.5rem; border-top: 1px solid var(--slate-800);">
+        <div style="max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <span style="font-weight: 700; color: #ffffff; font-size: 1rem;">Placement Prediction System</span>
+                <p style="font-size: 0.78rem; margin-top: 0.25rem;">Academic demonstration project for CSE3141 & CSE3121.</p>
+            </div>
+            <div style="font-size: 0.8rem;">
+                <a href="dashboard.html" style="color: var(--slate-300); margin-right: 1.25rem;">Dashboard</a>
+                <a href="models.html" style="color: var(--slate-300); margin-right: 1.25rem;">Models</a>
+                <a href="predict.html" style="color: var(--slate-300); margin-right: 1.25rem;">Prediction</a>
+                <a href="dataset.html" style="color: var(--slate-300);">Dataset</a>
+            </div>
+        </div>
+    </footer>
 
 </body>
 </html>

@@ -434,8 +434,9 @@ import os
 import requests 
 import json     
 import time
+import threading
 import psycopg
-from fastapi import FastAPI, Depends, HTTPException, status,Form
+from fastapi import FastAPI, Depends, HTTPException, status, Form
 from fastapi import File, UploadFile
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from dotenv import load_dotenv
@@ -449,6 +450,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from google import genai
 from google.genai import types
 from google.genai.errors import APIError
+
+# ML Pipeline and AI Soft Computing modules
+from ml_pipeline.dataset_manager import DatasetManager
+from ml_pipeline.eda import EDAService
+from ml_pipeline.training import ModelTrainingService
+from ml_pipeline.prediction import PredictionService
+from ml_pipeline.explainability import ExplainabilityService
+from ai_soft_computing.fuzzy_readiness import FuzzyPlacementReadinessSystem
+from ai_soft_computing.astar_planner import AStarSkillPlanner
 
 # 1. Load variables
 load_dotenv()
@@ -471,6 +481,7 @@ app.add_middleware(
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="login", auto_error=False)
 
 # --- Pydantic Models ---
 class UserCreate(BaseModel):
@@ -521,6 +532,32 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     history: Optional[List[ChatMessage]] = []
+
+# --- Pydantic Models for Predictive Analytics & AI (CSE3141 / CSE3121) ---
+class PredictionInput(BaseModel):
+    CGPA: float
+    Internships: int = 0
+    Projects: int = 1
+    Workshops: Optional[int] = None
+    Workshops_Certifications: Optional[int] = None
+    AptitudeTestScore: float = 75.0
+    SoftSkillsRating: float = 4.0
+    ExtracurricularActivities: str = "Yes"
+    PlacementTraining: str = "Yes"
+    SSC_Marks: float = 75.0
+    HSC_Marks: float = 75.0
+    student_name: Optional[str] = None
+
+class FuzzyReadinessInput(BaseModel):
+    cgpa: float
+    aptitude: float
+    soft_skills: float
+    projects: int = 1
+    internships: int = 0
+
+class AStarPlanInput(BaseModel):
+    target_role: str
+    current_skills: List[str] = []
 
 # --- Config and Helper Functions ---
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -616,6 +653,27 @@ def get_current_user(
             }
     except Exception:
         raise credentials_exception
+
+def get_optional_current_user(
+    token: Optional[str] = Depends(oauth2_scheme_optional), 
+    db: psycopg.Connection = Depends(get_db_connection)
+) -> Optional[dict]:
+    """Returns the authenticated user dict if valid token provided; None otherwise."""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if not email:
+            return None
+        with db.cursor() as cur:
+            cur.execute("SELECT id, email, role FROM users WHERE email = %s", (email,))
+            user_record = cur.fetchone()
+            if user_record:
+                return {"id": user_record[0], "email": user_record[1], "role": user_record[2]}
+    except Exception:
+        return None
+    return None
 
 # --- LLM Helper Function (For Quiz using Google Gemini API) ---
 def query_llm_for_quiz(skills_dict: dict):
@@ -1007,6 +1065,88 @@ def login_user(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: p
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+@app.get("/profile/me")
+@app.get("/profile")
+def get_current_user_profile(
+    current_user: dict = Depends(get_current_user),
+    db: psycopg.Connection = Depends(get_db_connection)
+):
+    """
+    Fetches the profile of the currently authenticated user.
+    Strictly scoped to current_user['id'] derived from the verified JWT.
+    Client-supplied parameters or queries are never used to look up profiles.
+    """
+    user_id = current_user["id"]
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                """
+                SELECT 
+                    sp.id,
+                    u.id AS user_id,
+                    u.email,
+                    u.role,
+                    sp.full_name,
+                    sp.course,
+                    sp.tenth_percentage,
+                    sp.twelfth_percentage,
+                    sp.current_year,
+                    sp.cgpa,
+                    sp.skills,
+                    sp.projects,
+                    sp.achievements,
+                    sp.linkedin_url,
+                    sp.star_level
+                FROM users u
+                LEFT JOIN student_profiles sp ON u.id = sp.user_id
+                WHERE u.id = %s;
+                """,
+                (user_id,)
+            )
+            row = cur.fetchone()
+            if not row or row[0] is None:
+                # User exists in 'users' table, but has not completed student_profiles row yet
+                return {
+                    "id": None,
+                    "user_id": user_id,
+                    "email": current_user["email"],
+                    "role": current_user.get("role", "student"),
+                    "profile_completed": False,
+                    "full_name": None,
+                    "course": None,
+                    "tenth_percentage": None,
+                    "twelfth_percentage": None,
+                    "current_year": None,
+                    "cgpa": None,
+                    "skills": None,
+                    "projects": None,
+                    "achievements": None,
+                    "linkedin_url": None,
+                    "star_level": 0
+                }
+
+            return {
+                "id": row[0],
+                "user_id": row[1],
+                "email": row[2],
+                "role": row[3],
+                "profile_completed": True,
+                "full_name": row[4],
+                "course": row[5],
+                "tenth_percentage": float(row[6]) if row[6] is not None else None,
+                "twelfth_percentage": float(row[7]) if row[7] is not None else None,
+                "current_year": row[8],
+                "cgpa": float(row[9]) if row[9] is not None else None,
+                "skills": row[10],
+                "projects": row[11],
+                "achievements": row[12],
+                "linkedin_url": row[13],
+                "star_level": row[14] or 0
+            }
+    except Exception as e:
+        print(f"Error fetching profile: {e}")
+        raise HTTPException(status_code=500, detail=f"An error occurred: {e}")
+
 @app.post("/profile/update")
 def update_student_profile(profile_data: StudentProfileCreate, current_user: dict = Depends(get_current_user), db: psycopg.Connection = Depends(get_db_connection)):
     if current_user["role"] != 'student':
@@ -1195,3 +1335,334 @@ async def chat_with_bot(
     )
     
     return {"response": llm_response}
+
+
+# =====================================================================
+# --- PREDICTIVE ANALYTICS & AI/SOFT COMPUTING EXTENSIONS ---
+# (CSE3141: Predictive Analytics & CSE3121: AI & Soft Computing)
+# =====================================================================
+
+# Initialize Services
+dataset_manager = DatasetManager()
+eda_service = EDAService(dataset_manager)
+training_service = ModelTrainingService(dataset_manager)
+prediction_service = PredictionService()
+explainability_service = ExplainabilityService(dataset_manager)
+fuzzy_system = FuzzyPlacementReadinessSystem()
+astar_planner = AStarSkillPlanner()
+
+
+# --- 1. Dataset Management Endpoints ---
+@app.get("/api/dataset/info")
+async def get_dataset_info():
+    """Returns metadata, data provenance, and schema of active placement dataset."""
+    try:
+        return dataset_manager.get_metadata()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/dataset/preview")
+async def get_dataset_preview(limit: int = 50):
+    """Returns preview records and schema types for active placement dataset."""
+    try:
+        return dataset_manager.get_preview(limit=limit)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/dataset/upload")
+async def upload_dataset_csv(file: UploadFile = File(...)):
+    """
+    Accepts student placement CSV upload, validates required schema,
+    stores immutable raw copy in data/raw/, and activates it for the ML pipeline.
+    """
+    if not file.filename.lower().endswith(".csv"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file format. Only standard comma-separated (.csv) files are supported."
+        )
+    try:
+        content = await file.read()
+        metadata = dataset_manager.ingest_uploaded_csv(
+            file_bytes=content,
+            filename=file.filename,
+            source_note="Uploaded via Web Workspace"
+        )
+        return {
+            "message": "Dataset successfully uploaded, validated, and activated.",
+            "metadata": metadata
+        }
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Dataset upload failed: {e}")
+
+
+@app.post("/api/dataset/reset-default")
+async def reset_to_default_dataset():
+    """Resets active dataset back to the benchmark Krooz Campus Recruitment dataset."""
+    try:
+        metadata = dataset_manager.reset_to_default()
+        return {
+            "message": "Successfully reset active dataset to default Krooz Campus Recruitment benchmark.",
+            "metadata": metadata
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- 2. Exploratory Data Analysis (EDA) Endpoints ---
+@app.get("/api/eda/summary")
+async def get_eda_summary():
+    """
+    Returns complete exploratory data analysis for active dataset:
+    descriptive statistics, missing values, duplicate detection,
+    numeric histograms, categorical frequencies, and correlation matrix.
+    """
+    try:
+        return eda_service.get_full_eda()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"EDA calculation failed: {e}")
+
+
+# --- 3. Model Training & Comparison Endpoints ---
+@app.get("/api/model/status")
+async def get_training_status():
+    """Returns current model training status and progress percentage."""
+    return training_service.get_status()
+
+
+@app.get("/api/model/comparison")
+async def get_model_comparison():
+    """
+    Returns evaluation metrics comparison across Dummy Classifier,
+    Logistic Regression, Decision Tree, Random Forest, and Gradient Boosting.
+    """
+    try:
+        return training_service.get_comparison_results()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/model/train")
+async def train_models(background: bool = False):
+    """
+    Triggers model training, 5-fold cross-validation, hyperparameter tuning,
+    and persistence across all 5 candidate classification pipelines.
+    """
+    if background:
+        current_status = training_service.get_status()
+        if current_status.get("state") == "running":
+            return {"message": "Model training is already currently running.", "status": current_status}
+        
+        thread = threading.Thread(target=training_service.train_and_evaluate_all)
+        thread.daemon = True
+        thread.start()
+        return {"message": "Model training started in background.", "status": training_service.get_status()}
+    else:
+        try:
+            results = training_service.train_and_evaluate_all()
+            return {"message": "Model training completed successfully.", "results": results}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Model training failed: {e}")
+
+
+# --- 4. Prediction & Prediction History Endpoints ---
+@app.post("/api/model/predict")
+async def predict_placement(
+    input_data: PredictionInput,
+    current_user: Optional[dict] = Depends(get_optional_current_user),
+    db: psycopg.Connection = Depends(get_db_connection)
+):
+    """
+    Executes binary placement prediction and probability estimation.
+    If authenticated, automatically persists prediction audit record to PostgreSQL.
+    """
+    try:
+        # Resolve workshop field alias
+        workshops_val = (
+            input_data.Workshops
+            if input_data.Workshops is not None
+            else (input_data.Workshops_Certifications if input_data.Workshops_Certifications is not None else 0)
+        )
+        student_dict = {
+            "CGPA": input_data.CGPA,
+            "Internships": input_data.Internships,
+            "Projects": input_data.Projects,
+            "Workshops/Certifications": workshops_val,
+            "AptitudeTestScore": input_data.AptitudeTestScore,
+            "SoftSkillsRating": input_data.SoftSkillsRating,
+            "ExtracurricularActivities": input_data.ExtracurricularActivities,
+            "PlacementTraining": input_data.PlacementTraining,
+            "SSC_Marks": input_data.SSC_Marks,
+            "HSC_Marks": input_data.HSC_Marks,
+        }
+
+        prediction_result = prediction_service.predict(student_dict)
+
+        # If user is authenticated, save record to prediction_history table
+        history_id = None
+        if current_user:
+            try:
+                with db.cursor() as cur:
+                    cur.execute(
+                        """
+                        INSERT INTO prediction_history (
+                            user_id, student_name, cgpa, internships, projects, workshops,
+                            aptitude_score, soft_skills_rating, extracurriculars, placement_training,
+                            ssc_marks, hsc_marks, prediction_result, placement_probability,
+                            model_version, feature_contributions
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        RETURNING id;
+                        """,
+                        (
+                            current_user["id"],
+                            input_data.student_name or current_user.get("email", "Student"),
+                            input_data.CGPA,
+                            input_data.Internships,
+                            input_data.Projects,
+                            workshops_val,
+                            input_data.AptitudeTestScore,
+                            input_data.SoftSkillsRating,
+                            input_data.ExtracurricularActivities,
+                            input_data.PlacementTraining,
+                            input_data.SSC_Marks,
+                            input_data.HSC_Marks,
+                            prediction_result["prediction"],
+                            prediction_result["placement_probability"],
+                            prediction_result["model_used"],
+                            json.dumps(prediction_result["feature_contributions"])
+                        )
+                    )
+                    db.commit()
+                    row = cur.fetchone()
+                    if row:
+                        history_id = row[0]
+            except Exception as dbe:
+                print(f"Notice: Failed to persist prediction history: {dbe}")
+
+        prediction_result["saved_history_id"] = history_id
+        return prediction_result
+
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Inference error: {e}")
+
+
+@app.get("/api/history/my")
+async def get_my_prediction_history(
+    current_user: dict = Depends(get_current_user),
+    db: psycopg.Connection = Depends(get_db_connection)
+):
+    """Retrieves all past placement predictions saved for the authenticated student."""
+    user_id = current_user["id"]
+    try:
+        with db.cursor() as cur:
+            cur.execute(
+                """
+                SELECT id, student_name, cgpa, internships, projects, workshops,
+                       aptitude_score, soft_skills_rating, extracurriculars, placement_training,
+                       ssc_marks, hsc_marks, prediction_result, placement_probability,
+                       model_version, feature_contributions, created_at
+                FROM prediction_history
+                WHERE user_id = %s
+                ORDER BY created_at DESC;
+                """,
+                (user_id,)
+            )
+            rows = cur.fetchall()
+            history_list = []
+            for r in rows:
+                fc = r[15]
+                if isinstance(fc, str):
+                    try:
+                        fc = json.loads(fc)
+                    except Exception:
+                        fc = []
+                history_list.append({
+                    "id": r[0],
+                    "student_name": r[1],
+                    "cgpa": float(r[2]) if r[2] is not None else None,
+                    "internships": r[3],
+                    "projects": r[4],
+                    "workshops": r[5],
+                    "aptitude_score": float(r[6]) if r[6] is not None else None,
+                    "soft_skills_rating": float(r[7]) if r[7] is not None else None,
+                    "extracurriculars": r[8],
+                    "placement_training": r[9],
+                    "ssc_marks": float(r[10]) if r[10] is not None else None,
+                    "hsc_marks": float(r[11]) if r[11] is not None else None,
+                    "prediction_result": r[12],
+                    "placement_probability": float(r[13]) if r[13] is not None else None,
+                    "model_version": r[14],
+                    "feature_contributions": fc or [],
+                    "created_at": r[16].isoformat() if r[16] else None
+                })
+            return {"history": history_list}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database query failed: {e}")
+
+
+# --- 5. Feature Importance & Explainability Endpoints ---
+@app.get("/api/model/explain")
+async def get_model_explainability():
+    """
+    Returns global feature importance, permutation importance,
+    and plain-language interpretability insights.
+    """
+    try:
+        return explainability_service.get_global_explanations()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# --- 6. Fuzzy Placement Readiness Endpoints (CSE3121) ---
+@app.post("/api/fuzzy/evaluate")
+async def evaluate_fuzzy_readiness(input_data: FuzzyReadinessInput):
+    """
+    Mamdani Fuzzy Inference System for Placement Readiness:
+    fuzzification, rule evaluation, aggregation, and centroid defuzzification.
+    """
+    try:
+        result = fuzzy_system.evaluate(
+            cgpa=input_data.cgpa,
+            aptitude=input_data.aptitude,
+            soft_skills=input_data.soft_skills,
+            projects=input_data.projects,
+            internships=input_data.internships
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Fuzzy inference failed: {e}")
+
+
+# --- 7. A* Skill Planner Endpoints (CSE3121) ---
+@app.post("/api/astar/plan")
+async def generate_astar_skill_plan(input_data: AStarPlanInput):
+    """
+    A* Heuristic Graph Search for optimal skill development trajectories.
+    Uses admissible prerequisite closure heuristic to guarantee shortest learning path.
+    """
+    try:
+        return astar_planner.plan_path(
+            current_skills=input_data.current_skills,
+            target_role=input_data.target_role
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"A* planning failed: {e}")
+
+
+@app.get("/api/astar/roles")
+async def get_astar_roles():
+    """Returns available career roles and required competency sets for A* search."""
+    return {"roles": astar_planner.get_available_roles()}
+
+
+@app.get("/api/astar/all-skills")
+async def get_astar_all_skills():
+    """Returns all technical skills in the knowledge graph catalog."""
+    return {"skills": astar_planner.get_all_skills()}

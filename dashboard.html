@@ -3,180 +3,347 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - AI Placement Predictor</title>
+    <title>Executive Dashboard - Placement Prediction System</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+    <div class="app-shell">
+        <!-- Sidebar Container (Rendered by nav.js) -->
+        <aside class="app-sidebar" id="sidebar-container"></aside>
 
-    <nav class="navbar">
-        <div class="logo">
-            <span>AI</span> Placement Predictor
+        <!-- Main Workspace -->
+        <div class="app-main">
+            <!-- Topbar Container (Rendered by nav.js) -->
+            <header class="app-topbar" id="topbar-container"></header>
+
+            <main class="app-content">
+                <!-- Page Header -->
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Executive Analytics Dashboard</h1>
+                        <p class="page-description">Predictive machine learning pipeline & AI soft computing overview.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button class="btn btn-outline btn-sm" id="refresh-dashboard-btn">
+                            <i class="fa-solid fa-arrows-rotate"></i> Refresh Data
+                        </button>
+                        <a href="predict.html" class="btn btn-primary btn-sm">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> New Prediction
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Academic Course Mapping Alert -->
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-graduation-cap" style="font-size: 1.25rem;"></i>
+                    <div>
+                        <strong>Academic Project Integration:</strong> Implements <strong>CSE3141 (Predictive Analytics)</strong> 
+                        via reproducible classification pipelines, cross-validation, and model explainability, alongside 
+                        <strong>CSE3121 (Artificial Intelligence & Soft Computing)</strong> featuring Mamdani fuzzy placement readiness and A* heuristic skill planning.
+                    </div>
+                </div>
+
+                <!-- Stats Overview Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-label">Active Dataset</span>
+                            <div class="stat-icon primary"><i class="fa-solid fa-database"></i></div>
+                        </div>
+                        <div class="stat-value" id="stat-total-records">10,000</div>
+                        <div class="stat-footer">
+                            <span class="badge badge-success">CC0-1.0</span>
+                            <span id="stat-dataset-name">Krooz Recruitment</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-label">Top Model</span>
+                            <div class="stat-icon success"><i class="fa-solid fa-brain"></i></div>
+                        </div>
+                        <div class="stat-value" id="stat-top-model">LogReg</div>
+                        <div class="stat-footer">
+                            <span class="badge badge-primary">F1: <span id="stat-model-f1">0.767</span></span>
+                            <span>Selected via 5-Fold CV</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-label">Test Accuracy</span>
+                            <div class="stat-icon warning"><i class="fa-solid fa-bullseye"></i></div>
+                        </div>
+                        <div class="stat-value" id="stat-model-accuracy">80.65%</div>
+                        <div class="stat-footer">
+                            <span class="badge badge-neutral">AUC: <span id="stat-model-auc">0.889</span></span>
+                            <span>Held-out 20% test split</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <span class="stat-label">Placement Ratio</span>
+                            <div class="stat-icon danger"><i class="fa-solid fa-user-check"></i></div>
+                        </div>
+                        <div class="stat-value" id="stat-placement-ratio">41.97%</div>
+                        <div class="stat-footer">
+                            <span>4,197 Placed : 5,803 Unplaced</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two-Column Analytics Layout -->
+                <div class="grid-2">
+                    <!-- Workflow Quick Launch Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-bolt text-indigo-500"></i> Core Modules
+                            </div>
+                            <span class="badge badge-neutral">SaaS Workflow</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--slate-50);">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--indigo-50); color: var(--primary); display: flex; align-items: center; justify-content: center;">
+                                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 600; font-size: 0.9rem;">Placement Prediction</div>
+                                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Real-time classification, probability & feature contributions</div>
+                                        </div>
+                                    </div>
+                                    <a href="predict.html" class="btn btn-primary btn-sm">Predict &rarr;</a>
+                                </div>
+
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--slate-50);">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--emerald-50); color: var(--success); display: flex; align-items: center; justify-content: center;">
+                                            <i class="fa-solid fa-brain"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 600; font-size: 0.9rem;">Fuzzy Readiness Assessment</div>
+                                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Mamdani fuzzy inference system with rule activation tracing</div>
+                                        </div>
+                                    </div>
+                                    <a href="readiness.html" class="btn btn-outline btn-sm">Assess &rarr;</a>
+                                </div>
+
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--slate-50);">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--amber-50); color: var(--warning); display: flex; align-items: center; justify-content: center;">
+                                            <i class="fa-solid fa-route"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 600; font-size: 0.9rem;">A* Skill Development Planner</div>
+                                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Heuristic search for optimal prerequisite learning sequence</div>
+                                        </div>
+                                    </div>
+                                    <a href="planner.html" class="btn btn-outline btn-sm">Plan &rarr;</a>
+                                </div>
+
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--slate-50);">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <div style="width: 36px; height: 36px; border-radius: var(--radius-sm); background: var(--rose-50); color: var(--danger); display: flex; align-items: center; justify-content: center;">
+                                            <i class="fa-solid fa-cubes"></i>
+                                        </div>
+                                        <div>
+                                            <div style="font-weight: 600; font-size: 0.9rem;">Model Comparison & Evaluation</div>
+                                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Compare Dummy, LogReg, Decision Tree, Random Forest & Gradient Boosting</div>
+                                        </div>
+                                    </div>
+                                    <a href="models.html" class="btn btn-outline btn-sm">Compare &rarr;</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dataset Health & Distribution Card -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-chart-pie text-indigo-500"></i> Active Dataset Breakdown
+                            </div>
+                            <a href="eda.html" class="btn btn-outline btn-sm">View Full EDA</a>
+                        </div>
+                        <div class="card-body">
+                            <div style="margin-bottom: 1.5rem;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 0.4rem;">
+                                    <span>Target Class: <strong>Not Placed (58.03%)</strong></span>
+                                    <span>Target Class: <strong>Placed (41.97%)</strong></span>
+                                </div>
+                                <div style="width: 100%; height: 16px; background-color: var(--rose-500); border-radius: var(--radius-full); overflow: hidden; display: flex;">
+                                    <div style="width: 58.03%; background-color: var(--slate-400);" title="Not Placed: 5,803 (58.03%)"></div>
+                                    <div style="width: 41.97%; background-color: var(--emerald-500);" title="Placed: 4,197 (41.97%)"></div>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">
+                                    <span><i class="fa-solid fa-circle" style="color: var(--slate-400); font-size: 8px;"></i> 5,803 Records</span>
+                                    <span><i class="fa-solid fa-circle" style="color: var(--emerald-500); font-size: 8px;"></i> 4,197 Records</span>
+                                </div>
+                            </div>
+
+                            <div style="border-top: 1px solid var(--border-subtle); padding-top: 1.25rem;">
+                                <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem;">Key Feature Means by Outcome:</div>
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Feature</th>
+                                                <th>Placed Students</th>
+                                                <th>Unplaced Students</th>
+                                                <th>Differential</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><strong>CGPA</strong></td>
+                                                <td><span class="badge badge-success">8.02</span></td>
+                                                <td><span class="badge badge-neutral">7.47</span></td>
+                                                <td><strong style="color: var(--success);">+0.55</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Aptitude Score</strong></td>
+                                                <td><span class="badge badge-success">82.3 / 100</span></td>
+                                                <td><span class="badge badge-neutral">69.8 / 100</span></td>
+                                                <td><strong style="color: var(--success);">+12.5 pts</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Projects Done</strong></td>
+                                                <td><span class="badge badge-success">2.51 projects</span></td>
+                                                <td><span class="badge badge-neutral">1.68 projects</span></td>
+                                                <td><strong style="color: var(--success);">+0.83</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Soft Skills Rating</strong></td>
+                                                <td><span class="badge badge-success">4.28 / 5.0</span></td>
+                                                <td><span class="badge badge-neutral">3.74 / 5.0</span></td>
+                                                <td><strong style="color: var(--success);">+0.54</strong></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Predictions Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-clock-rotate-left text-indigo-500"></i> Recent Placement Predictions
+                        </div>
+                        <a href="history.html" class="btn btn-outline btn-sm">View Complete History</a>
+                    </div>
+                    <div class="card-body" id="recent-predictions-container">
+                        <div class="empty-state" id="empty-history-state">
+                            <div class="empty-state-icon"><i class="fa-solid fa-chart-line"></i></div>
+                            <div class="empty-state-title">No Predictions Recorded Yet</div>
+                            <div class="empty-state-desc">Run a student prediction through the classification interface to record audit logs.</div>
+                            <a href="predict.html" class="btn btn-primary btn-sm">Run First Prediction</a>
+                        </div>
+                        <div class="table-responsive" id="history-table-wrapper" style="display: none;">
+                            <table class="data-table" id="dashboard-history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Student</th>
+                                        <th>CGPA</th>
+                                        <th>Aptitude</th>
+                                        <th>Projects</th>
+                                        <th>Prediction</th>
+                                        <th>Probability</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboard-history-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
         </div>
-        <ul class="nav-links">
-            <li><a href="index.html">Home</a></li>
-        </ul>
-        <div>
-            <span id="welcome-user" style="margin-right: 1rem;">Welcome!</span>
-            <a href="#" id="logout-btn" class="btn">Logout</a>
-        </div>
-    </nav>
-
-    <div class="dashboard-layout">
-        <aside class="sidebar">
-            <ul class="nav-links">
-                <li><a href="dashboard.html" class="active">Profile</a></li>
-                <li><a href="profile.html">Resume Upload</a></li>
-                <li><a href="soft-skills.html">Soft Skills</a></li>
-                <li><a href="results.html">Results & Roadmap</a></li>
-                <li><a href="test.html">Technical Test</a></li>
-                <li><a href="conversation.html"><i class="fas fa-brain"></i>AI Support</a></li>
-            </ul>
-        </aside>
-
-        <main class="main-content">
-            <div class="welcome-banner">
-                <h2 id="welcome-banner-name">Welcome back! 👋</h2>
-                <p>Let's continue building your career profile and unlock your potential.</p>
-            </div>
-
-            <div class="profile-summary-card">
-                <h3><i class="fas fa-user-circle"></i> Your Profile</h3>
-                <div class="user-info">
-                    <strong>Email:</strong> <span id="user-email-display">Loading...</span>
-                </div>
-                
-                <hr>
-
-                <h3><i class="fas fa-bullseye"></i> Top Job Role Predictions</h3>
-                <div id="predictions-container">
-                    </div>
-            </div>
-
-            <div class="profile-completion-card">
-                <h3>Profile Completion</h3>
-                <p>Complete all steps to get accurate predictions</p>
-                <div class="step">
-                    <div class="step-info">
-                        <span class="step-icon"><i class="fas fa-check"></i></span>
-                        <span class="step-name">Account Created</span>
-                    </div>
-                    <span class="step-status completed">Completed</span>
-                </div>
-                <div class="step">
-                    <div class="step-info">
-                        <span class="step-icon"><i class="fas fa-file-arrow-up"></i></span>
-                        <span class="step-name">Resume Upload</span>
-                    </div>
-                    <span id="resume-status" class="step-status pending">Pending</span>
-                </div>
-                <div class="step">
-                    <div class="step-info">
-                        <span class="step-icon"><i class="fas fa-comment"></i></span>
-                        <span class="step-name">Communication Test</span>
-                    </div>
-                    <span class="step-status pending">Pending</span>
-                </div>
-            </div>
-
-            <div class="card-container">
-                <div class="info-card">
-                    <div class="icon"><i class="fas fa-file-arrow-up"></i></div>
-                    <h4>Upload Resume</h4>
-                    <p>Start by uploading your resume or entering details manually.</p>
-                    <a href="profile.html">Get Started &rarr;</a>
-                </div>
-                <div class="info-card">
-                    <div class="icon"><i class="fas fa-comment"></i></div>
-                    <h4>Communication Test</h4>
-                    <p>Test your soft skills and communication abilities.</p>
-                    <a href="soft-skills.html">Get Started &rarr;</a>
-                </div>
-            </div>
-        </main>
     </div>
 
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="nav.js"></script>
     <script>
-        // --- Helper Function ---
-        function getRedirectPath(targetFile) {
-            const currentPath = window.location.pathname;
-            const dirPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
-            return dirPath + '/' + targetFile;
-        }
-        
-        // --- NEW: Helper to parse JWT token ---
-        function parseJwt(token) {
-            try {
-                const base64Url = token.split('.')[1];
-                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                return JSON.parse(jsonPayload);
-            } catch (e) {
-                return null; // Invalid token
-            }
-        }
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token');
+            const baseUrl = (typeof API_CONFIG !== 'undefined' && API_CONFIG.MAIN_API_BASE_URL) || 'http://127.0.0.1:8000';
 
-        // --- 1. Check Login & Handle Logout ---
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
-            alert('You must be logged in to view this page.');
-            window.location.href = getRedirectPath('login.html');
-        }
-        
-        document.getElementById('logout-btn').addEventListener('click', (e) => {
-            e.preventDefault();
-            localStorage.removeItem('accessToken');
-            alert('You have been logged out.');
-            window.location.href = getRedirectPath('login.html');
-        });
-
-        // --- 2. Load Profile Data ---
-        document.addEventListener('DOMContentLoaded', () => {
-            const predictionsContainer = document.getElementById('predictions-container');
-            const predictionsString = localStorage.getItem('jobRecommendations');
-            const tokenData = parseJwt(token);
-
-            // Set Welcome Message and Email
-            if (tokenData && tokenData.sub) {
-                document.getElementById('welcome-user').textContent = `Welcome, ${tokenData.sub.split('@')[0]}!`;
-                document.getElementById('welcome-banner-name').textContent = `Welcome back, ${tokenData.sub.split('@')[0]}! 👋`;
-                document.getElementById('user-email-display').textContent = tokenData.sub;
-            }
-            
-            // Load Job Predictions
-            if (!predictionsString) {
-                predictionsContainer.innerHTML = '<p style="color: #666; font-size: 0.9rem;">No predictions found. <a href="profile.html">Upload your resume</a> to get started.</p>';
-            } else {
+            async function loadDashboardData() {
                 try {
-                    const predictions = JSON.parse(predictionsString);
-                    if (predictions.length === 0) {
-                         predictionsContainer.innerHTML = '<p>Could not determine job roles from your resume.</p>';
-                         return;
+                    // 1. Fetch Model Comparison
+                    const compRes = await fetch(`${baseUrl}/api/model/comparison`);
+                    if (compRes.ok) {
+                        const compData = await compRes.json();
+                        const selectedModel = compData.selected_model || "Logistic Regression";
+                        const topModelInfo = compData.comparison.find(m => m.model_name === selectedModel) || compData.comparison[1];
+
+                        document.getElementById('stat-top-model').textContent = selectedModel.replace(" Classifier", "").replace(" Regression", "Reg");
+                        document.getElementById('stat-model-f1').textContent = topModelInfo.f1_score;
+                        document.getElementById('stat-model-accuracy').textContent = (topModelInfo.accuracy * 100).toFixed(2) + '%';
+                        document.getElementById('stat-model-auc').textContent = topModelInfo.roc_auc;
                     }
 
-                    // Update resume status
-                    document.getElementById('resume-status').textContent = 'Completed';
-                    document.getElementById('resume-status').classList.remove('pending');
-                    document.getElementById('resume-status').classList.add('completed');
+                    // 2. Fetch Dataset Info
+                    const dsRes = await fetch(`${baseUrl}/api/dataset/info`);
+                    if (dsRes.ok) {
+                        const dsData = await dsRes.json();
+                        document.getElementById('stat-total-records').textContent = dsData.row_count.toLocaleString();
+                        document.getElementById('stat-dataset-name').textContent = dsData.name.replace(" Dataset", "");
+                        
+                        const targetDist = dsData.quality_report?.target_distribution;
+                        if (targetDist && targetDist.Placed) {
+                            document.getElementById('stat-placement-ratio').textContent = targetDist.Placed.percentage + '%';
+                        }
+                    }
 
-                    predictions.sort((a, b) => b.match_score - a.match_score);
-
-                    predictions.forEach(role => {
-                        const roleElement = document.createElement('div');
-                        roleElement.classList.add('role-item'); // We can reuse this style
-                        roleElement.innerHTML = `
-                            <span class="role-name">${role.job_profile}</span>
-                            <span class="role-percentile">${(role.match_score * 100).toFixed(0)}%</span>
-                        `;
-                        predictionsContainer.appendChild(roleElement);
-                    });
-                } catch (error) {
-                    console.error('Error parsing predictions:', error);
-                    predictionsContainer.innerHTML = '<p>An error occurred while loading your results.</p>';
+                    // 3. Fetch Prediction History if logged in
+                    if (token) {
+                        const histRes = await fetch(`${baseUrl}/api/history/my`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (histRes.ok) {
+                            const histData = await histRes.json();
+                            const history = histData.history || [];
+                            if (history.length > 0) {
+                                document.getElementById('empty-history-state').style.display = 'none';
+                                document.getElementById('history-table-wrapper').style.display = 'block';
+                                const tbody = document.getElementById('dashboard-history-tbody');
+                                tbody.innerHTML = '';
+                                
+                                history.slice(0, 5).forEach(item => {
+                                    const dateStr = item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A';
+                                    const isPlaced = item.prediction_result === 'Placed';
+                                    const badgeClass = isPlaced ? 'badge-success' : 'badge-danger';
+                                    
+                                    tbody.innerHTML += `
+                                        <tr>
+                                            <td>${dateStr}</td>
+                                            <td><strong>${item.student_name || 'Student'}</strong></td>
+                                            <td>${item.cgpa || 'N/A'}</td>
+                                            <td>${item.aptitude_score || 'N/A'}</td>
+                                            <td>${item.projects !== null ? item.projects : 'N/A'}</td>
+                                            <td><span class="badge ${badgeClass}">${item.prediction_result}</span></td>
+                                            <td><strong>${item.placement_probability !== null ? item.placement_probability + '%' : 'N/A'}</strong></td>
+                                        </tr>
+                                    `;
+                                });
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error("Dashboard data load error:", err);
                 }
             }
+
+            document.getElementById('refresh-dashboard-btn').addEventListener('click', loadDashboardData);
+            loadDashboardData();
         });
     </script>
 </body>

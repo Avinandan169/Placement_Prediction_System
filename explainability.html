@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Explainability - Placement Prediction System</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="app-sidebar" id="sidebar-container"></aside>
+
+        <div class="app-main">
+            <header class="app-topbar" id="topbar-container"></header>
+
+            <main class="app-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Model Explainability & Feature Importance</h1>
+                        <p class="page-description">Interpret global feature weights, permutation importance, and classification drivers for CSE3141.</p>
+                    </div>
+                </div>
+
+                <!-- Academic Caution Alert -->
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-graduation-cap" style="font-size: 1.25rem;"></i>
+                    <div>
+                        <strong>CSE3141 Interpretability Guidance:</strong> Feature importance metrics demonstrate empirical 
+                        associations learned by the classification model across 10,000 campus records. 
+                        <strong>Correlated features (such as CGPA, SSC, and HSC) distribute predictive weight across related metrics. 
+                        These values represent statistical influence, not deterministic real-world causation.</strong>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <!-- Global Feature Importance Chart -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-chart-bar text-indigo-500"></i> Global Feature Importance (Pipeline Weights)
+                            </div>
+                            <span class="badge badge-primary" id="badge-model-name">Logistic Regression</span>
+                        </div>
+                        <div class="card-body">
+                            <div style="height: 380px; position: relative;">
+                                <canvas id="chart-feature-importance"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Permutation Importance Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-shuffle text-indigo-500"></i> Permutation Feature Importance
+                            </div>
+                            <span class="badge badge-neutral">Held-Out Test Data</span>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                <table class="data-table" id="table-perm-importance">
+                                    <thead>
+                                        <tr>
+                                            <th>Feature</th>
+                                            <th>Mean F1 Degradation</th>
+                                            <th>Std Dev</th>
+                                            <th>Impact Level</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-perm-importance">
+                                        <tr>
+                                            <td colspan="4" style="text-align: center; padding: 2rem;">Loading permutation importance...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Feature Interpretation Cards -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-book-open text-indigo-500"></i> Domain Feature Interpretations & Insights
+                        </div>
+                        <span class="badge badge-neutral">Campus Recruitment Context</span>
+                    </div>
+                    <div class="card-body" id="feature-insights-container">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Candidate Attribute</th>
+                                        <th>Model Coefficient / Importance</th>
+                                        <th>Domain Meaning & Justification</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbody-feature-meanings"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Academic Methodological Limitations Panel -->
+                <div class="card" style="border-left: 4px solid var(--amber-500);">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Methodological Limitations & Model Constraints
+                        </div>
+                        <span class="badge badge-warning">Critical Reflection</span>
+                    </div>
+                    <div class="card-body">
+                        <ul style="padding-left: 1.25rem; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.8;">
+                            <li><strong>Correlation vs Causation:</strong> High regression coefficients reflect predictive correlations in historical campus placements; attending placement training correlates with high recruitment success because motivated students actively seek out training.</li>
+                            <li><strong>Multicollinearity:</strong> School performance (SSC and HSC) correlates moderately with university CGPA (\(r \approx 0.35 - 0.45\)), which splits linear coefficient magnitudes among academic variables.</li>
+                            <li><strong>Dataset Context:</strong> Models trained on external benchmark datasets (such as Krooz Campus Recruitment) provide generalized patterns and must be fine-tuned or re-evaluated when applied to distinct regional institutional cohorts.</li>
+                        </ul>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="nav.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const baseUrl = (typeof API_CONFIG !== 'undefined' && API_CONFIG.MAIN_API_BASE_URL) || 'http://127.0.0.1:8000';
+            let featChart = null;
+
+            try {
+                const res = await fetch(`${baseUrl}/api/model/explain`);
+                if (!res.ok) throw new Error("Failed to fetch model explanations");
+                const data = await res.json();
+
+                document.getElementById('badge-model-name').textContent = data.model_name;
+
+                // 1. Chart: Global Feature Importance
+                const ranked = data.ranked_features || [];
+                const labels = ranked.map(f => f.display_name);
+                const scores = ranked.map(f => f.importance_score);
+                const bgColors = scores.map(s => s >= 0 ? '#4f46e5' : '#f43f5e');
+
+                if (featChart) featChart.destroy();
+                featChart = new Chart(document.getElementById('chart-feature-importance'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Importance Coefficient',
+                            data: scores,
+                            backgroundColor: bgColors,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { title: { display: true, text: 'Feature Impact Weight / Coefficient' } }
+                        }
+                    }
+                });
+
+                // 2. Permutation Importance Table
+                const perm = data.permutation_importance || [];
+                const permTbody = document.getElementById('tbody-perm-importance');
+                let permHtml = '';
+                perm.forEach(p => {
+                    const imp = p.importance_mean;
+                    const levelBadge = imp > 0.05 
+                        ? '<span class="badge badge-danger">High Impact</span>'
+                        : (imp > 0.01 ? '<span class="badge badge-warning">Moderate</span>' : '<span class="badge badge-neutral">Low</span>');
+                    
+                    permHtml += `
+                        <tr>
+                            <td><strong>${p.feature}</strong></td>
+                            <td>${p.importance_mean.toFixed(4)}</td>
+                            <td>&plusmn; ${p.importance_std.toFixed(4)}</td>
+                            <td>${levelBadge}</td>
+                        </tr>
+                    `;
+                });
+                permTbody.innerHTML = permHtml || '<tr><td colspan="4" style="text-align:center;">Permutation importance computed on demand.</td></tr>';
+
+                // 3. Domain Meanings Table
+                const tbodyMeanings = document.getElementById('tbody-feature-meanings');
+                let trHtml = '';
+                ranked.forEach((f, idx) => {
+                    trHtml += `
+                        <tr>
+                            <td style="color: var(--text-muted); font-size: 0.75rem;">${idx + 1}</td>
+                            <td><strong>${f.display_name}</strong></td>
+                            <td><span class="badge ${f.importance_score >= 0 ? 'badge-primary' : 'badge-danger'}">${f.importance_score}</span></td>
+                            <td style="font-size: 0.85rem;">${f.insight}</td>
+                        </tr>
+                    `;
+                });
+                tbodyMeanings.innerHTML = trHtml;
+
+            } catch (err) {
+                console.error("Explainability error:", err);
+            }
+        });
+    </script>
+</body>
+</html>

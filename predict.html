@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Placement Prediction - Placement Prediction System</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="app-sidebar" id="sidebar-container"></aside>
+
+        <div class="app-main">
+            <header class="app-topbar" id="topbar-container"></header>
+
+            <main class="app-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">Candidate Placement Prediction</h1>
+                        <p class="page-description">Predict recruitment likelihood, evaluate probabilities, and diagnose individual feature contributions.</p>
+                    </div>
+                    <div class="page-actions">
+                        <button type="button" class="btn btn-outline btn-sm" id="btn-load-sample">
+                            <i class="fa-solid fa-wand-magic"></i> Load Benchmark Sample
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Academic Note -->
+                <div class="alert alert-info">
+                    <i class="fa-solid fa-graduation-cap" style="font-size: 1.25rem;"></i>
+                    <div>
+                        <strong>CSE3141 Classification Inference:</strong> Student attributes are preprocessed via the trained 
+                        scikit-learn ColumnTransformer pipeline and scored with the active model. 
+                        Results are logged to PostgreSQL for auditing and profile tracking.
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <!-- Prediction Input Form -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-clipboard-user text-indigo-500"></i> Candidate Assessment Attributes
+                            </div>
+                            <span class="badge badge-neutral">Validated Inputs</span>
+                        </div>
+                        <div class="card-body">
+                            <form id="prediction-form">
+                                <!-- Section 1: Academic Performance -->
+                                <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.75rem; letter-spacing: 0.05em;">
+                                    1. Academic Records
+                                </div>
+                                <div class="grid-3" style="margin-bottom: 1rem;">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label" for="inp-cgpa">University CGPA <span class="required">*</span></label>
+                                        <input type="number" step="0.01" min="0" max="10" class="form-control" id="inp-cgpa" required value="8.2">
+                                        <div class="form-hint">Scale: 0.0 to 10.0</div>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label" for="inp-ssc">10th / SSC Marks (%) <span class="required">*</span></label>
+                                        <input type="number" step="0.1" min="0" max="100" class="form-control" id="inp-ssc" required value="78.0">
+                                        <div class="form-hint">Scale: 0 to 100%</div>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label" for="inp-hsc">12th / HSC Marks (%) <span class="required">*</span></label>
+                                        <input type="number" step="0.1" min="0" max="100" class="form-control" id="inp-hsc" required value="82.0">
+                                        <div class="form-hint">Scale: 0 to 100%</div>
+                                    </div>
+                                </div>
+
+                                <!-- Section 2: Technical & Project Experience -->
+                                <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.75rem; letter-spacing: 0.05em; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+                                    2. Technical & Practical Experience
+                                </div>
+                                <div class="grid-3" style="margin-bottom: 1rem;">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label" for="inp-internships">Internships <span class="required">*</span></label>
+                                        <input type="number" min="0" max="10" class="form-control" id="inp-internships" required value="1">
+                                        <div class="form-hint">Corporate/Industry</div>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label" for="inp-projects">Major Projects <span class="required">*</span></label>
+                                        <input type="number" min="0" max="20" class="form-control" id="inp-projects" required value="2">
+                                        <div class="form-hint">Completed software/hardware</div>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label" for="inp-workshops">Certifications <span class="required">*</span></label>
+                                        <input type="number" min="0" max="20" class="form-control" id="inp-workshops" required value="2">
+                                        <div class="form-hint">Workshops/Credentials</div>
+                                    </div>
+                                </div>
+
+                                <!-- Section 3: Aptitude & Soft Skills -->
+                                <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.75rem; letter-spacing: 0.05em; border-top: 1px solid var(--border-subtle); padding-top: 1rem;">
+                                    3. Screening Aptitude & Soft Skills
+                                </div>
+                                <div class="grid-2" style="margin-bottom: 1rem;">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label" for="inp-aptitude">Aptitude Test Score <span class="required">*</span></label>
+                                        <input type="number" step="0.5" min="0" max="100" class="form-control" id="inp-aptitude" required value="85.0">
+                                        <div class="form-hint">Screening test score (0-100)</div>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label" for="inp-softskills">Soft Skills Rating <span class="required">*</span></label>
+                                        <input type="number" step="0.1" min="1.0" max="5.0" class="form-control" id="inp-softskills" required value="4.3">
+                                        <div class="form-hint">Interview rating (1.0 to 5.0)</div>
+                                    </div>
+                                </div>
+
+                                <div class="grid-2" style="margin-bottom: 1.5rem;">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label" for="inp-extracurricular">Extracurricular Activities <span class="required">*</span></label>
+                                        <select class="form-select" id="inp-extracurricular" required>
+                                            <option value="Yes" selected>Yes - Active Participation</option>
+                                            <option value="No">No Participation</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label" for="inp-training">Placement Training <span class="required">*</span></label>
+                                        <select class="form-select" id="inp-training" required>
+                                            <option value="Yes" selected>Yes - Attended Bootcamps</option>
+                                            <option value="No">No Training</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--border-subtle); padding-top: 1.25rem;">
+                                    <button type="reset" class="btn btn-outline" id="btn-reset-form">
+                                        <i class="fa-solid fa-rotate-left"></i> Reset
+                                    </button>
+                                    <button type="submit" class="btn btn-primary" id="btn-submit-prediction">
+                                        <i class="fa-solid fa-wand-magic-sparkles"></i> Predict Placement
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Prediction Result Display -->
+                    <div class="card" id="result-card">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="fa-solid fa-square-poll-vertical text-indigo-500"></i> Model Prediction Result
+                            </div>
+                            <span class="badge badge-neutral" id="result-model-badge">Awaiting Input</span>
+                        </div>
+                        <div class="card-body">
+                            <!-- Initial Empty State -->
+                            <div class="empty-state" id="result-empty-state">
+                                <div class="empty-state-icon"><i class="fa-solid fa-chart-pie"></i></div>
+                                <div class="empty-state-title">Ready for Classification</div>
+                                <div class="empty-state-desc">Fill out the student candidate attributes and click "Predict Placement" to compute probabilities and diagnostic feature contributions.</div>
+                            </div>
+
+                            <!-- Live Result Container (Hidden initially) -->
+                            <div id="result-live-container" style="display: none;">
+                                <!-- Outcome Banner -->
+                                <div class="prediction-banner placed" id="outcome-banner">
+                                    <div>
+                                        <div class="pred-title" id="pred-class-text">PLACED</div>
+                                        <div class="pred-desc" id="pred-desc-text">Model estimates high probability of successful recruitment.</div>
+                                    </div>
+                                    <div class="pred-prob-badge">
+                                        <div class="pred-prob-num" id="pred-prob-num">87.9%</div>
+                                        <div class="pred-prob-label">Placement Probability</div>
+                                    </div>
+                                </div>
+
+                                <!-- Key Strengths & Growth Areas -->
+                                <div style="margin-bottom: 1.5rem;">
+                                    <div style="font-weight: 700; font-size: 0.85rem; color: var(--success); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                                        <i class="fa-solid fa-circle-check"></i> Key Strengths Contributing to Placement:
+                                    </div>
+                                    <ul id="list-strengths" style="padding-left: 1.25rem; font-size: 0.85rem; color: var(--text-primary); line-height: 1.7;"></ul>
+                                </div>
+
+                                <div style="margin-bottom: 1.5rem;">
+                                    <div style="font-weight: 700; font-size: 0.85rem; color: var(--warning); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                                        <i class="fa-solid fa-circle-exclamation"></i> Growth Areas to Further Strengthen Profile:
+                                    </div>
+                                    <ul id="list-improvements" style="padding-left: 1.25rem; font-size: 0.85rem; color: var(--text-primary); line-height: 1.7;"></ul>
+                                </div>
+
+                                <!-- Metadata & Disclaimer -->
+                                <div style="border-top: 1px solid var(--border-subtle); padding-top: 1rem; font-size: 0.74rem; color: var(--text-muted);">
+                                    <div><strong>Model:</strong> <span id="meta-model-used">Logistic Regression</span> | <strong>Dataset:</strong> <span id="meta-dataset-used">Krooz Campus Recruitment CSV</span></div>
+                                    <div style="margin-top: 0.35rem;" id="meta-disclaimer">
+                                        This prediction represents a statistical estimate generated by a machine learning model on benchmark data and is intended for academic and career planning guidance.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="nav.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const baseUrl = (typeof API_CONFIG !== 'undefined' && API_CONFIG.MAIN_API_BASE_URL) || 'http://127.0.0.1:8000';
+            const form = document.getElementById('prediction-form');
+            const submitBtn = document.getElementById('btn-submit-prediction');
+            const emptyState = document.getElementById('result-empty-state');
+            const liveContainer = document.getElementById('result-live-container');
+            const token = localStorage.getItem('token');
+
+            // Benchmark Sample Filler
+            document.getElementById('btn-load-sample').addEventListener('click', () => {
+                document.getElementById('inp-cgpa').value = 8.4;
+                document.getElementById('inp-ssc').value = 82.0;
+                document.getElementById('inp-hsc').value = 85.0;
+                document.getElementById('inp-internships').value = 2;
+                document.getElementById('inp-projects').value = 3;
+                document.getElementById('inp-workshops').value = 2;
+                document.getElementById('inp-aptitude').value = 89.0;
+                document.getElementById('inp-softskills').value = 4.6;
+                document.getElementById('inp-extracurricular').value = 'Yes';
+                document.getElementById('inp-training').value = 'Yes';
+            });
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running Inference...';
+
+                const payload = {
+                    CGPA: parseFloat(document.getElementById('inp-cgpa').value),
+                    SSC_Marks: parseFloat(document.getElementById('inp-ssc').value),
+                    HSC_Marks: parseFloat(document.getElementById('inp-hsc').value),
+                    Internships: parseInt(document.getElementById('inp-internships').value, 10),
+                    Projects: parseInt(document.getElementById('inp-projects').value, 10),
+                    Workshops: parseInt(document.getElementById('inp-workshops').value, 10),
+                    AptitudeTestScore: parseFloat(document.getElementById('inp-aptitude').value),
+                    SoftSkillsRating: parseFloat(document.getElementById('inp-softskills').value),
+                    ExtracurricularActivities: document.getElementById('inp-extracurricular').value,
+                    PlacementTraining: document.getElementById('inp-training').value,
+                    student_name: localStorage.getItem('userEmail') || 'Student Candidate'
+                };
+
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
+                try {
+                    const res = await fetch(`${baseUrl}/api/model/predict`, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+
+                    if (!res.ok) throw new Error(data.detail || "Prediction failed");
+
+                    // Hide empty state, show live result
+                    emptyState.style.display = 'none';
+                    liveContainer.style.display = 'block';
+
+                    const isPlaced = data.prediction === 'Placed';
+                    const banner = document.getElementById('outcome-banner');
+                    banner.className = `prediction-banner ${isPlaced ? 'placed' : 'not-placed'}`;
+                    document.getElementById('pred-class-text').textContent = isPlaced ? 'LIKELY PLACED' : 'NOT PLACED';
+                    document.getElementById('pred-desc-text').textContent = isPlaced
+                        ? 'High probability of placement clearance across campus recruitment drives.'
+                        : 'Current profile is below recruitment benchmark thresholds. Target suggested improvement areas.';
+                    document.getElementById('pred-prob-num').textContent = data.placement_probability + '%';
+
+                    document.getElementById('result-model-badge').textContent = data.model_used;
+                    document.getElementById('result-model-badge').className = 'badge badge-success';
+
+                    // Strengths
+                    const sList = document.getElementById('list-strengths');
+                    sList.innerHTML = '';
+                    (data.key_strengths || []).forEach(s => {
+                        sList.innerHTML += `<li><strong>${s.feature}:</strong> Value of ${s.student_value} exceeds benchmark (${s.benchmark_value}).</li>`;
+                    });
+                    if (!data.key_strengths || !data.key_strengths.length) {
+                        sList.innerHTML = '<li>Profile meets foundational baseline.</li>';
+                    }
+
+                    // Areas for Improvement
+                    const iList = document.getElementById('list-improvements');
+                    iList.innerHTML = '';
+                    (data.areas_for_improvement || []).forEach(imp => {
+                        iList.innerHTML += `<li><strong>${imp.feature}:</strong> Current value (${imp.student_value}) is below target benchmark (${imp.benchmark_value}). Recommended gap: +${Math.abs(imp.difference)}.</li>`;
+                    });
+                    if (!data.areas_for_improvement || !data.areas_for_improvement.length) {
+                        iList.innerHTML = '<li>Profile is well-rounded across all tested metrics!</li>';
+                    }
+
+                    // Metadata
+                    document.getElementById('meta-model-used').textContent = data.model_used;
+                    document.getElementById('meta-dataset-used').textContent = data.dataset_name || 'Krooz Campus Recruitment';
+                    document.getElementById('meta-disclaimer').textContent = data.disclaimer;
+
+                } catch (err) {
+                    alert('Prediction Error: ' + err.message);
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Predict Placement';
+                }
+            });
+
+            document.getElementById('btn-reset-form').addEventListener('click', () => {
+                liveContainer.style.display = 'none';
+                emptyState.style.display = 'block';
+                document.getElementById('result-model-badge').textContent = 'Awaiting Input';
+                document.getElementById('result-model-badge').className = 'badge badge-neutral';
+            });
+        });
+    </script>
+</body>
+</html>
